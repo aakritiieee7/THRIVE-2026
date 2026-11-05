@@ -1,0 +1,15 @@
+node_modules/
+.codenow/
+.env
+.env.*
+__pycache__/
+*.pyc
+dist/
+.build/
+*.sqlite3
+/.venv
+frontend/.next
+backend/__pycache__
+backend/.pytest_cache
+.worker_logs/
+.DS_Store

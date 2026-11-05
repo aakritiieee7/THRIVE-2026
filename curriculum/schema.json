@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Curriculum Schema",
+  "type": "object",
+  "required": ["board", "language", "grades"],
+  "properties": {
+    "board": { "type": "string" },
+    "board_id": { "type": "string" },
+    "language": { "type": "string" },
+    "source": { "type": "string" },
+    "ingestion_date": { "type": "string", "format": "date-time" },
+    "grades": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["grade", "subjects"],
+        "properties": {
+          "grade": { "type": "string" },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "chapters"],
+              "properties": {
+                "name": { "type": "string" },
+                "chapters": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["id", "title", "learning_outcomes"],
+                    "properties": {
+                      "id": { "type": "string" },
+                      "title": { "type": "string" },
+                      "learning_outcomes": {
+                        "type": "array",
+                        "items": { "type": "object", "properties": { "id": {"type":"string"}, "text": {"type":"string"}, "kl_level": {"type":"string"} } }
+                      },
+                      "prerequisites": { "type": "array", "items": {"type":"string"} },
+                      "resources": { "type": "array", "items": { "type": "object" } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

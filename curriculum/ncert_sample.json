@@ -1,0 +1,29 @@
+{
+  "board": "NCERT",
+  "board_id": "ncert",
+  "language": "en",
+  "source": "https://ncert.nic.in",
+  "ingestion_date": "2026-11-05T00:00:00Z",
+  "grades": [
+    {
+      "grade": "3",
+      "subjects": [
+        {
+          "name": "Mathematics",
+          "chapters": [
+            {
+              "id": "m3-ch1",
+              "title": "Shapes and Patterns",
+              "learning_outcomes": [
+                {"id": "m3-ch1-lo1", "text": "Recognize and name common 2D shapes.", "kl_level": "Understand"},
+                {"id": "m3-ch1-lo2", "text": "Create patterns using basic shapes.", "kl_level": "Apply"}
+              ],
+              "prerequisites": [],
+              "resources": [ {"type":"text","link":"https://ncert.nic.in/m3/ch1"} ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

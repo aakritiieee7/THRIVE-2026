@@ -1,0 +1,6 @@
+celery
+redis
+ortools
+pydantic
+sqlalchemy
+psycopg2-binary
