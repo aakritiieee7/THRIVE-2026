@@ -21,9 +21,14 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend:/app
+      - ./curriculum:/app/curriculum
     environment:
       DATABASE_URL: postgresql://thrive:thrive@postgres:5432/thrive
       REDIS_URL: redis://redis:6379/0
+      THRIVE_SECRET: ${THRIVE_SECRET:-change-me-in-production}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-}
     ports:
       - "8000:8000"
     depends_on:
@@ -35,6 +40,8 @@ services:
     command: npm run dev
     volumes:
       - ./frontend:/app
+    environment:
+      BACKEND_URL: http://backend:8000
     ports:
       - "3000:3000"
     depends_on:

@@ -7,9 +7,16 @@ __pycache__/
 dist/
 .build/
 *.sqlite3
+thrive.db
 /.venv
 frontend/.next
 backend/__pycache__
 backend/.pytest_cache
 .worker_logs/
 .DS_Store
+*.db
+test_thrive.db
+node_modules/
+.next/
+.venv/
+venv/

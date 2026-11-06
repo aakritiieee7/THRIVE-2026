@@ -3,8 +3,83 @@
   "board_id": "ncert",
   "language": "en",
   "source": "https://ncert.nic.in",
-  "ingestion_date": "2026-11-05T00:00:00Z",
+  "source_note": "Illustrative extract aligned to NCERT curriculum structure. Validate against the current official NCERT/SCERT syllabus before classroom use.",
+  "ingestion_date": "2026-11-06T00:00:00Z",
+  "status": "seed — partial coverage (Grades 1-5, Mathematics and EVS core chapters)",
   "grades": [
+    {
+      "grade": "1",
+      "subjects": [
+        {
+          "name": "Mathematics",
+          "chapters": [
+            {
+              "id": "m1-ch1",
+              "title": "Shapes and Space",
+              "learning_outcomes": [
+                {"id": "m1-ch1-lo1", "text": "Identify common 2D and 3D shapes in the environment.", "kl_level": "Understand"},
+                {"id": "m1-ch1-lo2", "text": "Sort and classify objects by shape and size.", "kl_level": "Apply"}
+              ],
+              "prerequisites": [],
+              "resources": [{"type": "text", "link": "https://epathshala.nic.in/"}]
+            },
+            {
+              "id": "m1-ch2",
+              "title": "Numbers from One to Nine",
+              "learning_outcomes": [
+                {"id": "m1-ch2-lo1", "text": "Count objects up to 9 and write the numerals.", "kl_level": "Apply"},
+                {"id": "m1-ch2-lo2", "text": "Compare quantities as more, less or equal.", "kl_level": "Understand"}
+              ],
+              "prerequisites": [],
+              "resources": [{"type": "text", "link": "https://epathshala.nic.in/"}]
+            }
+          ]
+        },
+        {
+          "name": "Environmental Studies",
+          "chapters": [
+            {
+              "id": "evs1-ch1",
+              "title": "Family and Friends",
+              "learning_outcomes": [
+                {"id": "evs1-ch1-lo1", "text": "Describe family members and their roles.", "kl_level": "Understand"}
+              ],
+              "prerequisites": [],
+              "resources": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "grade": "2",
+      "subjects": [
+        {
+          "name": "Mathematics",
+          "chapters": [
+            {
+              "id": "m2-ch1",
+              "title": "Counting in Groups",
+              "learning_outcomes": [
+                {"id": "m2-ch1-lo1", "text": "Count objects in groups of tens and ones.", "kl_level": "Apply"},
+                {"id": "m2-ch1-lo2", "text": "Compare two-digit numbers using place value.", "kl_level": "Understand"}
+              ],
+              "prerequisites": ["m1-ch2"],
+              "resources": [{"type": "text", "link": "https://epathshala.nic.in/"}]
+            },
+            {
+              "id": "m2-ch2",
+              "title": "Patterns",
+              "learning_outcomes": [
+                {"id": "m2-ch2-lo1", "text": "Extend and create repeating patterns.", "kl_level": "Apply"}
+              ],
+              "prerequisites": ["m1-ch1"],
+              "resources": []
+            }
+          ]
+        }
+      ]
+    },
     {
       "grade": "3",
       "subjects": [
@@ -18,8 +93,103 @@
                 {"id": "m3-ch1-lo1", "text": "Recognize and name common 2D shapes.", "kl_level": "Understand"},
                 {"id": "m3-ch1-lo2", "text": "Create patterns using basic shapes.", "kl_level": "Apply"}
               ],
+              "prerequisites": ["m2-ch2"],
+              "resources": [{"type": "text", "link": "https://epathshala.nic.in/"}]
+            },
+            {
+              "id": "m3-ch2",
+              "title": "Numbers up to 999",
+              "learning_outcomes": [
+                {"id": "m3-ch2-lo1", "text": "Read and write three-digit numbers.", "kl_level": "Apply"},
+                {"id": "m3-ch2-lo2", "text": "Order numbers using place value.", "kl_level": "Understand"}
+              ],
+              "prerequisites": ["m2-ch1"],
+              "resources": []
+            }
+          ]
+        },
+        {
+          "name": "Environmental Studies",
+          "chapters": [
+            {
+              "id": "evs3-ch1",
+              "title": "Plant World",
+              "learning_outcomes": [
+                {"id": "evs3-ch1-lo1", "text": "Describe parts of a plant and their functions.", "kl_level": "Understand"}
+              ],
               "prerequisites": [],
-              "resources": [ {"type":"text","link":"https://ncert.nic.in/m3/ch1"} ]
+              "resources": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "grade": "4",
+      "subjects": [
+        {
+          "name": "Mathematics",
+          "chapters": [
+            {
+              "id": "m4-ch1",
+              "title": "Building with Bricks (Shapes and Angles intro)",
+              "learning_outcomes": [
+                {"id": "m4-ch1-lo1", "text": "Recognize right angles and turns.", "kl_level": "Understand"}
+              ],
+              "prerequisites": ["m3-ch1"],
+              "resources": []
+            },
+            {
+              "id": "m4-ch2",
+              "title": "Numbers up to 9999",
+              "learning_outcomes": [
+                {"id": "m4-ch2-lo1", "text": "Compare and order four-digit numbers.", "kl_level": "Apply"}
+              ],
+              "prerequisites": ["m3-ch2"],
+              "resources": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "grade": "5",
+      "subjects": [
+        {
+          "name": "Mathematics",
+          "chapters": [
+            {
+              "id": "m5-ch1",
+              "title": "The Fish Tale (large numbers, shapes)",
+              "learning_outcomes": [
+                {"id": "m5-ch1-lo1", "text": "Read and compare five-digit numbers.", "kl_level": "Apply"},
+                {"id": "m5-ch1-lo2", "text": "Identify 2D shapes and their properties.", "kl_level": "Understand"}
+              ],
+              "prerequisites": ["m4-ch2"],
+              "resources": [{"type": "text", "link": "https://epathshala.nic.in/"}]
+            },
+            {
+              "id": "m5-ch2",
+              "title": "Fractions",
+              "learning_outcomes": [
+                {"id": "m5-ch2-lo1", "text": "Represent and compare simple fractions.", "kl_level": "Apply"}
+              ],
+              "prerequisites": ["m4-ch2"],
+              "resources": []
+            }
+          ]
+        },
+        {
+          "name": "Environmental Studies",
+          "chapters": [
+            {
+              "id": "evs5-ch1",
+              "title": "Matter and Materials",
+              "learning_outcomes": [
+                {"id": "evs5-ch1-lo1", "text": "Classify everyday materials by properties.", "kl_level": "Understand"}
+              ],
+              "prerequisites": ["evs3-ch1"],
+              "resources": []
             }
           ]
         }

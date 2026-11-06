@@ -1,13 +1,12 @@
 fastapi
 uvicorn[standard]
 sqlalchemy
-databases
 psycopg2-binary
 python-multipart
 python-jose[cryptography]
-passlib[bcrypt]
-alembic
+passlib
+email-validator
 pydantic
-redis
-celery
 python-dotenv
+# Optional / infra (only needed for full docker-compose stack):
+#   alembic redis celery ortools
