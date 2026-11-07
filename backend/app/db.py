@@ -32,6 +32,45 @@ def get_db():
         db.close()
 
 
+def _add_missing_columns() -> None:
+    """Add columns introduced after a table was first created (SQLite dev DBs).
+
+    There are no Alembic migrations in this project, so a pre-existing
+    thrive.db would otherwise lack newer columns (e.g. lesson_plans.guest_token).
+    Production deployments should still adopt Alembic for real migrations.
+    """
+    from sqlalchemy import inspect, text
+    inspector = inspect(engine)
+    try:
+        existing = {t for t in inspector.get_table_names()}
+        for table in Base.metadata.sorted_tables:
+            if table.name not in existing:
+                continue
+            have = {c['name'] for c in inspector.get_columns(table.name)}
+            with engine.begin() as conn:
+                for col in table.columns:
+                    if col.name in have:
+                        continue
+                    col_type = col.type.compile(engine.dialect)
+                    nullable = 'NULL' if col.nullable else 'NOT NULL DEFAULT 0'
+                    conn.execute(text(f'ALTER TABLE {table.name} ADD COLUMN {col.name} {col_type} {nullable}'))
+                    if col.index:
+                        conn.execute(text(f'CREATE INDEX IF NOT EXISTS ix_{table.name}_{col.name} '
+                                          f'ON {table.name} ({col.name})'))
+            # Relax NOT NULL where the model now allows NULL (e.g. guest plans).
+            for col in table.columns:
+                if col.name in have and col.nullable and col.name == 'teacher_id':
+                    try:
+                        conn.execute(text(f'ALTER TABLE {table.name} ALTER COLUMN '
+                                          f'{col.name} DROP NOT NULL'))
+                    except Exception:
+                        pass
+    except Exception:
+        # Never block startup on a best-effort dev migration; the next
+        # create_all still guarantees fresh databases are correct.
+        pass
+
+
 def init_db() -> None:
     """Create tables if they do not exist yet (dev/self-host friendly).
 
@@ -40,6 +79,7 @@ def init_db() -> None:
     """
     from . import models  # noqa: F401  (register mappings)
     Base.metadata.create_all(bind=engine)
+    _add_missing_columns()
 
 
 def now() -> str:

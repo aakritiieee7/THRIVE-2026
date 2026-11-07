@@ -1,0 +1,10 @@
+[     234ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:29834
+[     262ms] [LOG] [HMR] connected @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:47
+[     405ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/favicon.ico:0
+[ 2801118ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/hot-dev-client.js:180
+[ 2801481ms] [LOG] [Fast Refresh] done in 364ms @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/hot-dev-client.js:157
+[ 2986672ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/hot-dev-client.js:180
+[ 2986890ms] [LOG] [Fast Refresh] done in 218ms @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/hot-dev-client.js:157
+[ 3009654ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/hot-dev-client.js:180
+[ 3009973ms] [LOG] [Fast Refresh] done in 320ms @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/hot-dev-client.js:157
+[ 3594105ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/hot-dev-client.js:180

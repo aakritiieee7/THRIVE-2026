@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, JSON, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 
-from .db import Base
+from .db import Base, _add_missing_columns
 
 
 class Teacher(Base):
@@ -22,7 +22,8 @@ class LessonPlan(Base):
     __tablename__ = 'lesson_plans'
 
     id = Column(Integer, primary_key=True)
-    teacher_id = Column(Integer, ForeignKey('teachers.id'), nullable=False, index=True)
+    # NULL for guest drafts (no account yet); set on adoption into an account.
+    teacher_id = Column(Integer, ForeignKey('teachers.id'), nullable=True, index=True)
     title = Column(String(255), nullable=False)
     subject = Column(String(120), default='')
     medium = Column(String(60), default='')
@@ -30,6 +31,10 @@ class LessonPlan(Base):
     minutes = Column(Integer, default=45)
     payload = Column(JSON, default=dict)   # {grades:[...], schedule:[...], sources:[...]}
     created_at = Column(String(32), nullable=False)
+    # NULL for account-owned plans; set only for guest (anonymous) drafts so
+    # they can later be adopted into an account. No Alembic in this project —
+    # db.init_db() adds this column to pre-existing SQLite files in place.
+    guest_token = Column(String(80), nullable=True, index=True)
 
     teacher = relationship('Teacher', back_populates='lesson_plans')
 

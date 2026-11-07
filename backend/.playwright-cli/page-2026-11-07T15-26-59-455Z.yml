@@ -1,0 +1,47 @@
+- generic [ref=f1e3]:
+  - banner [ref=f1e4]:
+    - link "THRIVE home" [ref=f1e5] [cursor=pointer]:
+      - /url: /
+      - generic [ref=f1e13]:
+        - generic [ref=f1e14]: THRIVE
+        - generic [ref=f1e15]: Teacher Support, Together
+    - generic [ref=f1e16]:
+      - generic [ref=f1e17]: Guest session · starting your guest session…
+      - link "Teacher login" [ref=f1e20] [cursor=pointer]:
+        - /url: /login
+      - link "Create account" [ref=f1e21] [cursor=pointer]:
+        - /url: /signup
+  - generic [ref=f1e22]:
+    - generic [ref=f1e23]:
+      - generic [ref=f1e24]: Namaste. I am THRIVE — try me without an account. Ask a teaching question in English or Hindi, and if you tell me your grades and minutes I will build a time-bound multi-grade plan.
+      - generic [ref=f1e27]:
+        - button "I have students from Grade 2, 3 and 4 in one classroom. I have 40 minutes to teach mathematics. What should I do?" [disabled] [ref=f1e28]
+        - button "Suggest a low-cost EVS activity for Grade 3 with only chalk and paper." [disabled] [ref=f1e29]
+        - button "How do I explain fractions to a mixed Grade 4 and Grade 5 group?" [disabled] [ref=f1e30]
+      - generic [ref=f1e31]:
+        - combobox "Reply language" [ref=f1e32]:
+          - option "English" [selected]
+          - option "Hindi"
+        - textbox "Type your question — e.g. “Grade 2, 3 and 4, 40 minutes, mathematics”" [ref=f1e33]
+        - button "Send" [disabled] [ref=f1e34]
+    - complementary [ref=f1e35]:
+      - generic [ref=f1e36]:
+        - generic [ref=f1e38]:
+          - heading "Your guest drafts" [level=2] [ref=f1e39]
+          - paragraph [ref=f1e40]: … drafts max, kept on the server for this session
+        - generic [ref=f1e41]:
+          - 'img "Empty state illustration: an open book with a small leaf and a question spark" [ref=f1e42]'
+          - generic [ref=f1e49]: Ask for a lesson plan, then save the reply as a draft.
+        - button "Save latest plan as draft" [ref=f1e51] [cursor=pointer]
+      - generic [ref=f1e54]:
+        - generic [ref=f1e56]:
+          - heading "What an account adds" [level=2] [ref=f1e57]
+          - paragraph [ref=f1e58]: Free — your drafts come with you
+        - list [ref=f1e59]:
+          - listitem [ref=f1e60]: Unlimited assistant questions with full sources
+          - listitem [ref=f1e63]: All your lesson plans, synced and exportable
+          - listitem [ref=f1e66]: Conversation history and personalised context
+          - listitem [ref=f1e69]: Training progress and community access
+        - link "Create a free account" [ref=f1e72] [cursor=pointer]:
+          - /url: /signup
+        - paragraph [ref=f1e75]: When you register, your guest drafts are adopted into your account automatically. Nothing here is shared with other teachers.

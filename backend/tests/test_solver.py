@@ -128,3 +128,33 @@ def test_single_grade_class():
     turns = [s for s in result['slots'] if s['kind'] == 'turn']
     assert len(turns) == 1
     assert result['slots'][-1]['end'] == 30
+
+
+def test_infeasible_error_suggests_resolutions():
+    """An infeasible request must say how to resolve it, not just fail."""
+    with pytest.raises(InfeasiblePlan) as e:
+        compile_schedule(base(grades=make_grades(3), minutes=25, transition_buffer=3))
+    joined = ' '.join(e.value.errors)
+    assert 'not enough' in joined
+    assert 'Resolve it by:' in joined
+    assert 'reset class time to at least' in joined
+    # a computable alternative must be offered when one exists (split groups)
+    assert 'split the period' in joined
+
+
+def test_every_slot_has_per_interval_lanes():
+    result = compile_schedule(base(grades=make_grades(3), minutes=45))
+    for slot in result['slots']:
+        assert slot['lanes'], f"slot at {slot['start']} has no lanes"
+        assert any(l.get('is_teacher') for l in slot['lanes'])
+        # lanes never double-book the teacher within one interval
+        teachers = [l for l in slot['lanes'] if l.get('is_teacher')]
+        assert len(teachers) == 1
+
+
+def test_turn_slots_offer_early_finisher_move():
+    result = compile_schedule(base(grades=make_grades(3), minutes=45))
+    turns = [s for s in result['slots'] if s['kind'] == 'turn']
+    assert all(s['early_finishers'] for s in turns)
+    assert all('if a waiting group finishes early' in s['early_finishers'].lower()
+               for s in turns)

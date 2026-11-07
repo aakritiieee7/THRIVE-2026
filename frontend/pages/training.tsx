@@ -6,6 +6,8 @@ import {api,getToken} from '../lib/api'
 export default function Training(){
  const [progress,setProgress]=useStoredState<Record<string,number>>('training-progress',{})
  const [course,setCourse]=useState<any>(null),[notice,setNotice]=useState(''),[hydrated,setHydrated]=useState(false)
+ const [topic,setTopic]=useState('All')
+ const topics=['All',...Array.from(new Set(seedCourses.map((c:any)=>c.topic))) as string[]]
 
  // Pull server progress for signed-in teachers; local copy is the offline fallback.
  useEffect(()=>{
@@ -35,20 +37,24 @@ export default function Training(){
  const total=seedCourses.reduce((a,c)=>a+c.lesson.length,0)
 
  return <Layout title="Training centre">
-  <div className="page-heading"><div><div className="eyebrow">TRAINING CENTRE</div><h1>Professional learning that fits your day.</h1><p>Short practice modules for classroom teaching, with progress that persists to your account.</p></div><span className="tag">SELF-PACED LEARNING</span></div>
+  <div className="page-heading"><div><div className="eyebrow">Training centre</div><h1>Professional learning that fits your day.</h1><p>Short practice modules for classroom teaching, with progress that persists to your account.</p></div><span className="tag">Self-paced learning</span></div>
   <div className="notice" style={{marginBottom:15}}>THRIVE micro-lessons are practice resources, not accredited training or official certification. NEP 2020 encourages at least 50 hours of teacher professional development a year — for government programmes visit DIKSHA/NISHTHA directly.</div>
   <div className="panel" style={{marginBottom:15}}>
    <div className="panel-title"><div><h2>Your learning progress</h2><p>{getToken()?'Synced to your account when online':'Saved on this device (sign in to sync)'}</p></div><b style={{fontSize:10,color:'#598165'}}>{done} of {total} lessons completed</b></div>
    <div className="progress-line"><i style={{width:`${Math.min(100,Math.round(done/total*100))}%`}}/></div>
   </div>
+  <div className="chip-filters" style={{marginBottom:13}} aria-label="Filter courses by category">
+   {topics.map(t=><button key={t} className={topic===t?'selected':''} onClick={()=>setTopic(t)}>{t}</button>)}
+  </div>
   <div className="grid course-grid">
-   {seedCourses.map((c:any)=>{const n=progress[c.id]||0;return <article className="panel course-card" key={c.id}>
+   {seedCourses.filter((c:any)=>topic==='All'||c.topic===topic).map((c:any)=>{const n=progress[c.id]||0;return <article className="panel course-card" key={c.id}>
     <div className={'course-band '+c.color}><span className="tag">{c.topic}</span><span style={{fontSize:19}}>✳</span></div>
     <div className="course-body"><h3>{c.title}</h3><p>{c.desc}</p>
      <div className="course-meta"><span>{c.length} · {c.level}</span><span>{n}/{c.lesson.length} lessons</span></div>
      <div className="progress-line" style={{marginTop:9}}><i style={{width:`${(n/c.lesson.length)*100}%`}}/></div>
-     <button className="btn btn-small" style={{marginTop:12}} onClick={()=>setCourse(c)}>{n>=c.lesson.length?'Review course':'Continue course'} →</button>
+     <button className="btn btn-small" style={{marginTop:12}} onClick={()=>setCourse(c)}>{n>=c.lesson.length?'Review course':'Continue course'}</button>
     </div></article>})}
+   {seedCourses.filter((c:any)=>topic==='All'||c.topic===topic).length===0&&<div className="empty">No courses in this category yet.</div>}
   </div>
   <section className="panel" style={{marginTop:15}}>
    <div className="panel-title"><div><h2>Continue with official learning</h2><p>External resources open on the provider's site.</p></div></div>
@@ -66,7 +72,7 @@ export default function Training(){
     <div><b style={{fontSize:10}}>Lesson {Math.min((progress[course.id]||0)+1,course.lesson.length)} of {course.lesson.length}</b>
      <p style={{fontSize:13,lineHeight:1.8,marginTop:8}}>{course.lesson[Math.min(progress[course.id]||0,course.lesson.length-1)]}</p></div>
     <div className="notice">Reflection: What is one change you could try in your next class?</div>
-    <button className="btn btn-primary" style={{marginTop:14}} onClick={()=>advance(course)}>{(progress[course.id]||0)>=course.lesson.length?'Mark reviewed':'Mark lesson complete'} →</button>
+    <button className="btn btn-primary" style={{marginTop:14}} onClick={()=>advance(course)}>{(progress[course.id]||0)>=course.lesson.length?'Mark reviewed':'Mark lesson complete'}</button>
    </div>
   </div>}
   {notice&&<div className="toast">✓ &nbsp;{notice}</div>}

@@ -189,3 +189,116 @@ def test_curriculum_endpoints(client):
     assert chapters['grade'] == '3'
     assert chapters['subjects'][0]['chapters']
     assert client.get('/curriculum/chapters', params={'grade': '99'}).status_code == 404
+
+
+def test_infeasible_reply_suggests_resolutions(client):
+    """The API surfaces the engine's 'Resolve it by' guidance, not a bare 422."""
+    r = client.post('/compiler/run', json={
+        'minutes': 25, 'transition_buffer': 3,
+        'grades': [{'grade': str(i), 'topic': 'T', 'objective': 'O'} for i in (1, 2, 3)],
+    })
+    assert r.status_code == 422
+    detail = r.json()['detail']
+    assert any('Resolve it by:' in e for e in detail)
+    assert any('reset class time' in e for e in detail)
+
+
+def test_compiler_slots_expose_lanes(client):
+    r = client.post('/compiler/run', json={
+        'subject': 'Mathematics', 'minutes': 45,
+        'grades': [
+            {'grade': '3', 'topic': 'Shapes', 'objective': 'Name shapes'},
+            {'grade': '4', 'topic': 'Patterns', 'objective': 'Extend patterns'},
+            {'grade': '5', 'topic': 'Fractions', 'objective': 'Compare fractions'},
+        ],
+    })
+    assert r.status_code == 200, r.text
+    for slot in r.json()['slots']:
+        assert slot['lanes'], f"slot at {slot['start']} missing lanes"
+        assert sum(1 for l in slot['lanes'] if l.get('is_teacher')) == 1
+    turns = [s for s in r.json()['slots'] if s['kind'] == 'turn']
+    assert all(t['early_finishers'] for t in turns)
+
+
+def test_whatsapp_webhook_verifies_and_replies(client):
+    r = client.get('/assistant/whatsapp',
+                   params={'hub.mode': 'subscribe', 'hub.verify_token': 'thrive-verify',
+                           'hub.challenge': '424242'})
+    assert r.status_code == 200 and r.text == '424242'
+    bad = client.get('/assistant/whatsapp',
+                     params={'hub.mode': 'subscribe', 'hub.verify_token': 'nope',
+                             'hub.challenge': '1'})
+    assert bad.status_code == 403
+
+    r = client.post('/assistant/whatsapp', json={'entry': [{'changes': [{'value': {
+        'messages': [{'from': '+910000000000',
+                      'text': {'body': 'How do I plan a multi-grade maths period?'}}]}}]}]})
+    assert r.status_code == 200
+    body = r.json()
+    assert body['channel'] == 'whatsapp'
+    assert body['from'] == '+910000000000'
+    assert body['reply'] and body['mode'] in ('local-grounded', 'llm-grounded', 'grounded')
+    assert isinstance(body['sources'], list) and body['sources']
+
+
+def test_guest_session_ask_and_quota(client):
+    from app import guest as guest_layer
+    guest_layer.reset_state()
+    r = client.post('/guest/session')
+    assert r.status_code == 200, r.text
+    tok = r.json()['guest_token']
+    assert r.json()['plan_limit'] == 5
+
+    ask = client.post('/guest/ask', headers={'x-guest-token': tok},
+                      json={'message': 'Grade 3 and 4, 45 minutes, EVS. Make a plan.'})
+    assert ask.status_code == 200, ask.text
+    assert ask.json()['asks_remaining'] == 19
+    assert ask.json()['reply']
+
+    bad = client.post('/guest/ask', headers={'x-guest-token': 'guest-nope'},
+                      json={'message': 'hi'})
+    assert bad.status_code == 401
+    # the httponly cookie set by /guest/session also authenticates
+    via_cookie = client.post('/guest/ask', json={'message': 'hi'})
+    assert via_cookie.status_code == 200
+    client.cookies.clear()
+    no_tok = client.post('/guest/ask', json={'message': 'hi'})
+    assert no_tok.status_code == 401
+
+
+def test_guest_plan_drafts_and_upgrade(client, auth):
+    from app import guest as guest_layer
+    guest_layer.reset_state()
+    r = client.post('/guest/session')
+    tok = r.json()['guest_token']
+    headers = {'x-guest-token': tok}
+    created = client.post('/guest/plans', headers=headers,
+                          json={'title': 'Guest draft 1', 'minutes': 40, 'payload': {'grades': ['2']}})
+    assert created.status_code == 200, created.text
+
+    listed = client.get('/guest/plans', headers=headers).json()
+    assert [p['title'] for p in listed] == ['Guest draft 1']
+
+    # drafts are invisible to accounts
+    assert all(p['title'] != 'Guest draft 1' for p in client.get('/plans', headers=auth).json())
+
+    up = client.post('/guest/upgrade', headers=auth, json={'guest_token': tok})
+    assert up.status_code == 200 and up.json()['adopted'] == 1
+    plans = client.get('/plans', headers=auth).json()
+    assert any(p['title'] == 'Guest draft 1' for p in plans)
+
+    # retired guest token no longer works
+    assert client.get('/guest/plans', headers=headers).status_code == 401
+    # adopted token cannot be reused to claim again
+    assert client.post('/guest/upgrade', headers=auth, json={'guest_token': tok}).json()['adopted'] == 0
+
+
+def test_whatsapp_status_is_honest(client):
+    r = client.get('/assistant/whatsapp/status')
+    assert r.status_code == 200
+    body = r.json()
+    # No credentials in the test environment — must not claim live sends.
+    assert body['configured'] is False
+    assert body['live'] is False
+    assert body['mode'] == 'simulation'
+    assert 'WHATSAPP_TOKEN' in body['note']

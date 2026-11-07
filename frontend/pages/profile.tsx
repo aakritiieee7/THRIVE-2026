@@ -42,7 +42,7 @@ export default function Profile(){
  async function signout(){setToken(null);setSession(null);setLogin({email:'',password:''})}
 
  return <Layout title="My profile">
-  <div className="page-heading"><div><div className="eyebrow">YOUR TEACHING CONTEXT</div><h1>Make THRIVE fit your classroom.</h1><p>This context tailors the assistant, compiler and training suggestions.</p></div></div>
+  <div className="page-heading"><div><div className="eyebrow">Your teaching context</div><h1>Make THRIVE fit your classroom.</h1><p>This context tailors the assistant, compiler and training suggestions.</p></div></div>
   <div className="profile-layout">
    <aside className="panel profile-hero">
     <div className="profile-photo">{(profile.name||'T').trim()[0]?.toUpperCase()}</div>
@@ -58,7 +58,7 @@ export default function Profile(){
      <div className="field"><label>Password</label><input type="password" value={login.password} onChange={e=>setLogin({...login,password:e.target.value})} placeholder="••••••"/></div>
      {authMsg&&<div className="notice" style={{background:'#fbefec',borderColor:'#f2d8d0',color:'#925e4d',marginBottom:8}}>{authMsg}</div>}
      <button className="btn btn-primary btn-small" type="submit" disabled={authBusy} style={{width:'100%',justifyContent:'center'}}>{authBusy?'Signing in…':'Sign in'}</button>
-     <div style={{marginTop:8,fontSize:9}}><a className="text-link" href="/signup">Create an account →</a></div>
+     <div style={{marginTop:8,fontSize:9}}><a className="text-link" href="/signup">Create an account</a></div>
     </form>}
     <div className="divider"/>
     <div className="notice" style={{textAlign:'left'}}>No student information is needed. Avoid entering identifiable student data anywhere in THRIVE.</div>

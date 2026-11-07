@@ -9,7 +9,9 @@ import type { NextApiRequest, NextApiResponse } from 'next'
  * FastAPI routes live at the root (`/health`, `/compiler/run`, …).
  * Uses global fetch (Node 18+); no extra dependencies.
  */
-const BACKEND = process.env.BACKEND_URL || 'http://localhost:8000'
+// Use 127.0.0.1, not localhost: on Node 18+ `localhost` resolves to ::1 (IPv6)
+// first, but uvicorn binds IPv4 only — so the proxy would get ECONNREFUSED.
+const BACKEND = process.env.BACKEND_URL || 'http://127.0.0.1:8000'
 
 export const config = { api: { bodyParser: false } }
 

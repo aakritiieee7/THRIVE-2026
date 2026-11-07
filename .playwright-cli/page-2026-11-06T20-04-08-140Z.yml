@@ -1,0 +1,129 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - link "t THRIVE Teacher support, together" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e6]: t
+        - generic [ref=e7]:
+          - generic [ref=e8]: THRIVE
+          - generic [ref=e9]: Teacher support, together
+      - generic [ref=e10]: Workspace
+      - navigation [ref=e11]:
+        - link "⌂ Home" [ref=e12] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e13]: ⌂
+          - text: Home
+        - link "✦ Guided setup" [ref=e14] [cursor=pointer]:
+          - /url: /guided
+          - generic [ref=e15]: ✦
+          - text: Guided setup
+        - link "▦ Curriculum Studio CORE" [ref=e16] [cursor=pointer]:
+          - /url: /compiler
+          - generic [ref=e17]: ▦
+          - text: Curriculum Studio
+          - generic [ref=e18]: CORE
+        - link "✳ Teaching assistant" [ref=e19] [cursor=pointer]:
+          - /url: /assistant
+          - generic [ref=e20]: ✳
+          - text: Teaching assistant
+        - link "▤ Training centre" [ref=e21] [cursor=pointer]:
+          - /url: /training
+          - generic [ref=e22]: ▤
+          - text: Training centre
+        - link "◷ Updates" [ref=e23] [cursor=pointer]:
+          - /url: /updates
+          - generic [ref=e24]: ◷
+          - text: Updates
+        - link "◎ Teacher community" [ref=e25] [cursor=pointer]:
+          - /url: /community
+          - generic [ref=e26]: ◎
+          - text: Teacher community
+        - link "▣ My resources" [ref=e27] [cursor=pointer]:
+          - /url: /resources
+          - generic [ref=e28]: ▣
+          - text: My resources
+      - generic [ref=e29]:
+        - generic [ref=e30]: Your workspace is saved on this device
+        - link "T Sign in Bihar your context ···" [ref=e32] [cursor=pointer]:
+          - /url: /profile
+          - generic [ref=e33]: T
+          - generic [ref=e34]:
+            - generic [ref=e35]: Sign in
+            - generic [ref=e36]: Bihar your context
+          - generic [ref=e37]: ···
+    - main [ref=e38]:
+      - generic [ref=e39]:
+        - generic [ref=e40]:
+          - generic [ref=e41]: Workspace
+          - generic [ref=e42]: /
+          - generic [ref=e43]: Chat with THRIVE
+        - generic [ref=e44]:
+          - link "Updates" [ref=e45] [cursor=pointer]:
+            - /url: /updates
+            - text: ♧
+          - link "T" [ref=e47] [cursor=pointer]:
+            - /url: /profile
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - generic [ref=e50]:
+            - generic [ref=e51]: Chat with THRIVE
+            - heading "Message THRIVE the way you message anyone." [level=1] [ref=e52]
+            - paragraph [ref=e53]: A WhatsApp-style thread backed by the same grounded assistant — type, speak, or connect your phone.
+          - generic [ref=e54]:
+            - generic [ref=e55]: Reply language
+            - combobox [ref=e56]:
+              - option "English" [selected]
+              - option "Hindi"
+        - generic [ref=e57]:
+          - generic [ref=e58]: Namaste. This is THRIVE chat — the same assistant that lives in Teaching assistant, shaped for quick messages like WhatsApp. Ask about a lesson, an activity, or a classroom challenge.
+          - complementary [ref=e61]:
+            - generic [ref=e62]:
+              - generic [ref=e63]: ✆
+              - generic [ref=e64]:
+                - text: THRIVE on chat
+                - generic [ref=e65]: Web chat now · WhatsApp bot next
+            - generic [ref=e68]:
+              - text: Web chat
+              - generic [ref=e69]: Live — this thread, works signed in or out
+            - generic [ref=e72]:
+              - text: Voice notes
+              - generic [ref=e73]: Tap the mic below and speak
+            - generic [ref=e76]:
+              - text: WhatsApp bot
+              - generic [ref=e77]: Bridge is live on the backend — connect a Meta number to switch it on
+            - text: Try asking
+            - generic [ref=e79]:
+              - button "How do I teach fractions to Grade 4 and Grade 2 in one period?" [ref=e80] [cursor=pointer]
+              - button "Suggest a reading activity with only chalk and paper." [ref=e81] [cursor=pointer]
+              - button "What is a good 5-minute check for understanding?" [ref=e82] [cursor=pointer]
+              - button "How do I settle a noisy class without shouting?" [ref=e83] [cursor=pointer]
+            - generic [ref=e85]: Replies use THRIVE's curriculum corpus and your teaching context. Confirm syllabus-specific claims against your official curriculum.
+        - generic [ref=e87]:
+          - button "Speak your message" [ref=e88] [cursor=pointer]: ●
+          - textbox "Type a message, or tap the mic to speak…" [ref=e89]
+          - button "Send ↑" [ref=e90] [cursor=pointer]
+        - generic [ref=e91]:
+          - generic [ref=e93]:
+            - heading "Connect this assistant to WhatsApp" [level=2] [ref=e94]
+            - paragraph [ref=e95]: One bridge serves every channel — web chat already uses it
+          - generic [ref=e96]:
+            - generic [ref=e97]:
+              - generic [ref=e98]: "1"
+              - generic [ref=e99]:
+                - generic [ref=e100]: Backend bridge is running
+                - generic [ref=e101]: "POST /api/assistant/bridge answers any channel: WhatsApp, SMS or this chat."
+            - generic [ref=e102]:
+              - generic [ref=e103]: "2"
+              - generic [ref=e104]:
+                - generic [ref=e105]: Create a Meta WhatsApp app
+                - generic [ref=e106]: Add the WhatsApp product, verify your number, and get an access token.
+            - generic [ref=e107]:
+              - generic [ref=e108]: "3"
+              - generic [ref=e109]:
+                - generic [ref=e110]: Point the webhook at THRIVE
+                - generic [ref=e111]: Set the webhook URL to your deployment's /api/assistant/whatsapp with the verify token.
+          - generic [ref=e112]: Until Meta credentials are added, this web chat exercises the exact same bridge the WhatsApp bot will use — so the flow is proven end to end before a number goes live.
+      - generic [ref=e113]:
+        - text: THRIVE · Teacher Hub for Resources, Instruction, Verified Information & Empowerment
+        - generic [ref=e114]: Helping teachers thrive, helping students flourish.
+  - alert [ref=e115]

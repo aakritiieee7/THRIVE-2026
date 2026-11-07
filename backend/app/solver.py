@@ -74,7 +74,9 @@ class Slot:
     activity: str
     materials: str
     check: str
-    kind: str             # 'opening' | 'turn' | 'closing'
+    kind: str             # 'opening' | 'turn' | 'transition' | 'closing'
+    lanes: List[Dict[str, str]] = field(default_factory=list)   # who-is-doing-what, per interval
+    early_finishers: str = ''                                    # only on teacher-turn slots
 
 
 def _validate(inp: CompileInput) -> List[str]:
@@ -101,6 +103,24 @@ def _validate(inp: CompileInput) -> List[str]:
             f'{MIN_OPENING} min opening + {MIN_CLOSE} min closing'
             + (f' + {inp.transition_buffer} min transitions' if inp.transition_buffer else '') + ').'
         )
+        # --- specific, computable ways to resolve the conflict -------------
+        fixes = [f'reset class time to at least {need} minutes']
+        for drop in range(n):
+            others = max(0, n - drop - 1)
+            alt = MIN_OPENING + MIN_CLOSE + (n - drop) * MIN_TURN + others * inp.transition_buffer
+            if drop and alt <= inp.minutes:
+                fixes.append(
+                    f'split the period so only {n - drop} grade group'
+                    f'{"s" if n - drop != 1 else ""} are scheduled together '
+                    f'(needs {alt} min) and teach Grade {inp.grades[drop].grade} in a separate period'
+                )
+                break
+        if inp.transition_buffer:
+            alt_buf = MIN_OPENING + MIN_CLOSE + n * MIN_TURN + max(0, n - 1) * (inp.transition_buffer - 1)
+            if alt_buf <= inp.minutes:
+                fixes.append(f'reduce the transition buffer from {inp.transition_buffer} to '
+                             f'{inp.transition_buffer - 1} minutes (fits in {alt_buf} min)')
+        errors.append('Resolve it by: ' + '; '.join(fixes) + '.')
     return errors
 
 
@@ -142,6 +162,11 @@ def compile_schedule(inp: CompileInput) -> Dict[str, Any]:
     shared_intro = len(shared_groups) > 0 and any(len(v) > 1 for v in shared_groups.values())
     all_names = ', '.join(f'Grade {g.grade}' for g in grades)
 
+    def whole_class_lanes(teacher_doing: str, learner_doing: str) -> List[Dict[str, str]]:
+        return ([{'who': 'You (teacher)', 'doing': teacher_doing, 'is_teacher': '1'}]
+                + [{'who': f'Grade {g.grade}', 'doing': learner_doing, 'is_teacher': ''}
+                   for g in grades])
+
     if shared_intro:
         shared_names = [f'Grade {g.grade}' for grp in shared_groups.values() if len(grp) > 1 for g in grp]
         joint_obj = ' · '.join(next(g.objective for g in grp if len(grp) > 1)
@@ -153,7 +178,10 @@ def compile_schedule(inp: CompileInput) -> Dict[str, Any]:
         )
         slots.append(Slot(cursor, cursor + opening, 'Whole class', [f'Grade {g.grade}' for g in grades],
                           joint_obj, 'Teacher-led', activity, materials,
-                          'Listen for prior ideas; name the shared learning goal.', 'opening'))
+                          'Listen for prior ideas; name the shared learning goal.', 'opening',
+                          lanes=whole_class_lanes(
+                              'Model the shared example for the whole room',
+                              'Watch the example; one learner states the shared idea')))
     else:
         activity = (
             f'Whole-class opening: one familiar question or demonstration in {subj.lower()} to settle '
@@ -161,7 +189,10 @@ def compile_schedule(inp: CompileInput) -> Dict[str, Any]:
         )
         slots.append(Slot(cursor, cursor + opening, 'Whole class', [f'Grade {g.grade}' for g in grades],
                           'Connect learners to today’s idea', 'Teacher-led', activity, materials,
-                          'Listen for prior ideas; state each grade’s goal for the lesson.', 'opening'))
+                          'Listen for prior ideas; state each grade’s goal for the lesson.', 'opening',
+                          lanes=whole_class_lanes(
+                              'Ask one settling question and name each grade’s goal',
+                              'Answer the opening question; note today’s goal')))
     cursor += opening
 
     for i, g in enumerate(grades):
@@ -174,14 +205,32 @@ def compile_schedule(inp: CompileInput) -> Dict[str, Any]:
                 f'“when you finish” tasks on the board using {materials.lower()}; walk over for a '
                 f'30-second check if a group finishes early.'
             )
+            lanes = (
+                [{'who': 'You (teacher)', 'doing': f'Teacher-led focus: {g.topic}', 'is_teacher': '1'},
+                 {'who': f'Grade {g.grade}', 'doing': 'With you: model, try one, explain', 'is_teacher': ''}]
+                + [{'who': f'Grade {x.grade}',
+                    'doing': 'Independent “when you finish” task from the board',
+                    'is_teacher': ''} for x in others]
+            )
+            early = (
+                f'If a waiting group finishes early: give the extension prompt on the board, '
+                f'or pair a finished learner with one still working — swap to the Grade {g.grade} '
+                f'table for a 30-second check before the closing check.'
+            )
         else:
             independent = 'Only one grade group in this period — all learners work with you.'
+            lanes = ([{'who': 'You (teacher)', 'doing': f'Teacher-led focus: {g.topic}',
+                       'is_teacher': '1'},
+                      {'who': f'Grade {g.grade}', 'doing': 'With you: model, try one, explain',
+                       'is_teacher': ''}])
+            early = ''
         activity = (
             f'Teacher-led focus on “{g.topic}”. Model one example, then learners try one. {independent}'
         )
         slots.append(Slot(cursor, cursor + dur, f'Grade {g.grade}', [f'Grade {g.grade}'],
                           g.objective, 'Teacher-led', activity, materials,
-                          f'Ask one learner from Grade {g.grade} to explain: {g.objective}', 'turn'))
+                          f'Ask one learner from Grade {g.grade} to explain: {g.objective}', 'turn',
+                          lanes=lanes, early_finishers=early))
         cursor += dur
         if inp.transition_buffer and i < n - 1:
             slots.append(Slot(cursor, cursor + inp.transition_buffer, f'Transition {i + 1}',
@@ -190,7 +239,12 @@ def compile_schedule(inp: CompileInput) -> Dict[str, Any]:
                               'Independent work',
                               f'Groups swap materials and read the next “when you finish” task; '
                               f'you set up Grade {grades[i + 1].grade}.',
-                              materials, 'Confirm every group has a visible next step.', 'transition'))
+                              materials, 'Confirm every group has a visible next step.', 'transition',
+                              lanes=[{'who': 'You (teacher)', 'doing': f'Set up Grade {grades[i + 1].grade}',
+                                      'is_teacher': '1'}]
+                                     + [{'who': f'Grade {x.grade}',
+                                         'doing': 'Swap materials; read the next task',
+                                         'is_teacher': ''} for x in grades]))
             cursor += inp.transition_buffer
 
     check_activity = (
@@ -199,7 +253,12 @@ def compile_schedule(inp: CompileInput) -> Dict[str, Any]:
     )
     slots.append(Slot(cursor, inp.minutes, 'All groups', [f'Grade {g.grade}' for g in grades],
                       'Check understanding and close', 'Teacher-led', check_activity,
-                      materials, 'Grade-specific prompts below.', 'closing'))
+                      materials, 'Grade-specific prompts below.', 'closing',
+                      lanes=([{'who': 'You (teacher)',
+                               'doing': 'Run one closing prompt per grade group', 'is_teacher': '1'}]
+                             + [{'who': f'Grade {g.grade}',
+                                 'doing': f'Show or explain: {g.objective}', 'is_teacher': ''}
+                                for g in grades])))
 
     # --- post-conditions (defence in depth) -------------------------------
     assert slots[-1].end == inp.minutes, 'schedule must end exactly at requested minutes'
@@ -243,10 +302,11 @@ def _feasible(slots: List[Slot], inp: CompileInput) -> bool:
     for s in slots:
         if s.end <= s.start:
             return False
-    # teacher double-booking: only one 'Teacher-led' slot active at any minute
-    for s in slots:
-        if s.teacher == 'Teacher-led' and s.end - s.start <= 0:
-            return False
+    # C5: the teacher is never double-booked — no two teacher-led intervals overlap
+    teacher_slots = [s for s in slots if s.teacher == 'Teacher-led']
+    for a, b in zip(teacher_slots, teacher_slots[1:]):
+        if b.start < a.end:
+            return False  # a.end > b.start would put two teacher-led slots on one minute
     return True
 
 

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la \"/var/folders/b3/dx5vj40s5vnclxqdvx6xbvd40000gn/T/TemporaryItems/NSIRD_screencaptureui_dWT7mj/\" 2>/dev/null; echo \"---\"; which ffmpeg ffprobe 2>/dev/null; echo \"---\"; ls /Users/aakritirajhans/codeforindia/frontend/public 2>/dev/null)",
+      "Bash(docker --version)",
+      "Read(//opt/homebrew/bin/**)",
+      "Read(//usr/local/bin/**)",
+      "Bash(/Users/aakritirajhans/codeforindia/backend/.venv/bin/python --version)",
+      "Bash(/Users/aakritirajhans/codeforindia/backend/.venv/bin/python -c \"import fastapi, uvicorn; print\\('deps ok'\\)\")"
+    ]
+  }
+}

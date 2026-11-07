@@ -1,0 +1,160 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - link "t THRIVE Teacher support, together" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e6]: t
+        - generic [ref=e7]:
+          - generic [ref=e8]: THRIVE
+          - generic [ref=e9]: Teacher support, together
+      - generic [ref=e10]: WORKSPACE
+      - navigation [ref=e11]:
+        - link "⌂ Home" [ref=e12] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e13]: ⌂
+          - text: Home
+        - link "▦ Curriculum Studio CORE" [ref=e14] [cursor=pointer]:
+          - /url: /compiler
+          - generic [ref=e15]: ▦
+          - text: Curriculum Studio
+          - generic [ref=e16]: CORE
+        - link "✳ Teaching assistant" [ref=e17] [cursor=pointer]:
+          - /url: /assistant
+          - generic [ref=e18]: ✳
+          - text: Teaching assistant
+        - link "▤ Training centre" [ref=e19] [cursor=pointer]:
+          - /url: /training
+          - generic [ref=e20]: ▤
+          - text: Training centre
+        - link "◷ Updates" [ref=e21] [cursor=pointer]:
+          - /url: /updates
+          - generic [ref=e22]: ◷
+          - text: Updates
+        - link "◎ Teacher community" [ref=e23] [cursor=pointer]:
+          - /url: /community
+          - generic [ref=e24]: ◎
+          - text: Teacher community
+        - link "▣ My resources" [ref=e25] [cursor=pointer]:
+          - /url: /resources
+          - generic [ref=e26]: ▣
+          - text: My resources
+      - generic [ref=e27]:
+        - generic [ref=e28]: Your workspace is saved on this device
+        - link "T Sign in Bihar your context ···" [ref=e30] [cursor=pointer]:
+          - /url: /profile
+          - generic [ref=e31]: T
+          - generic [ref=e32]:
+            - generic [ref=e33]: Sign in
+            - generic [ref=e34]: Bihar your context
+          - generic [ref=e35]: ···
+    - main [ref=e36]:
+      - generic [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]: Workspace
+          - generic [ref=e40]: /
+          - generic [ref=e41]: Home
+        - generic [ref=e42]:
+          - link "Updates" [ref=e43] [cursor=pointer]:
+            - /url: /updates
+            - text: ♧
+          - link "T" [ref=e45] [cursor=pointer]:
+            - /url: /profile
+      - generic [ref=e46]:
+        - generic [ref=e47]:
+          - generic [ref=e48]: FRIDAY · YOUR TEACHER WORKSPACE
+          - link "⚙ My profile" [ref=e50] [cursor=pointer]:
+            - /url: /profile
+        - generic [ref=e51]:
+          - generic [ref=e52]:
+            - generic [ref=e53]: Your classroom, supported· backend connected
+            - heading "Good evening, Teacher ✦" [level=1] [ref=e54]
+            - paragraph [ref=e55]: Small, thoughtful steps make a meaningful difference in every classroom.
+            - link "Plan today's lesson →" [ref=e56] [cursor=pointer]:
+              - /url: /compiler
+              - text: Plan today's lesson
+              - generic [ref=e57]: →
+          - generic [ref=e58]: ✿ ✳
+        - generic [ref=e59]:
+          - link "▦ Plan a multi-grade lesson Build one coordinated, constraint-checked schedule across grade groups." [ref=e60] [cursor=pointer]:
+            - /url: /compiler
+            - generic [ref=e61]: ▦
+            - generic [ref=e62]: Plan a multi-grade lesson
+            - generic [ref=e63]: Build one coordinated, constraint-checked schedule across grade groups.
+          - link "✳ Ask the teaching assistant Ground-level answers with sources, shaped by your classroom context." [ref=e64] [cursor=pointer]:
+            - /url: /assistant
+            - generic [ref=e65]: ✳
+            - generic [ref=e66]: Ask the teaching assistant
+            - generic [ref=e67]: Ground-level answers with sources, shaped by your classroom context.
+          - link "▤ Continue learning Short professional-development modules with persistent progress." [ref=e68] [cursor=pointer]:
+            - /url: /training
+            - generic [ref=e69]: ▤
+            - generic [ref=e70]: Continue learning
+            - generic [ref=e71]: Short professional-development modules with persistent progress.
+          - link "◎ Learn with other teachers Practical classroom ideas shared by peers." [ref=e72] [cursor=pointer]:
+            - /url: /community
+            - generic [ref=e73]: ◎
+            - generic [ref=e74]: Learn with other teachers
+            - generic [ref=e75]: Practical classroom ideas shared by peers.
+        - generic [ref=e76]:
+          - generic [ref=e77]:
+            - generic [ref=e78]:
+              - generic [ref=e79]:
+                - heading "Your saved lesson plans" [level=2] [ref=e80]
+                - paragraph [ref=e81]: Pick up where you left off
+              - link "All resources →" [ref=e82] [cursor=pointer]:
+                - /url: /resources
+            - generic [ref=e83]:
+              - text: Your lesson plans will appear here after you save them.
+              - link "Create your first plan →" [ref=e84] [cursor=pointer]:
+                - /url: /compiler
+          - generic [ref=e85]:
+            - generic [ref=e86]:
+              - generic [ref=e87]:
+                - heading "A little learning, often" [level=2] [ref=e88]
+                - paragraph [ref=e89]: Short practice for busy school days
+              - link "Explore →" [ref=e90] [cursor=pointer]:
+                - /url: /training
+            - generic [ref=e91]:
+              - generic [ref=e92]: SUGGESTED FOR YOU
+              - heading "Teaching in a multi-grade classroom" [level=3] [ref=e93]
+              - paragraph [ref=e94]: A practical 35-minute course on organizing teacher-led time and independent activities.
+              - link "Open course →" [ref=e95] [cursor=pointer]:
+                - /url: /training
+        - generic [ref=e96]:
+          - generic [ref=e97]:
+            - generic [ref=e98]:
+              - generic [ref=e99]:
+                - heading "From trusted sources" [level=2] [ref=e100]
+                - paragraph [ref=e101]: Useful learning links and official information
+              - link "Browse updates →" [ref=e102] [cursor=pointer]:
+                - /url: /updates
+            - generic [ref=e103]:
+              - generic [ref=e104]:
+                - generic [ref=e105]: ↗
+                - generic [ref=e106]:
+                  - generic [ref=e107]: NISHTHA learning programmes
+                  - generic [ref=e108]: DIKSHA · Teacher professional development
+                - link "Visit ↗" [ref=e109] [cursor=pointer]:
+                  - /url: https://diksha.gov.in/
+              - generic [ref=e110]:
+                - generic [ref=e111]: ↗
+                - generic [ref=e112]:
+                  - generic [ref=e113]: NCERT ePathshala
+                  - generic [ref=e114]: NCERT · Textbooks and learning resources
+                - link "Visit ↗" [ref=e115] [cursor=pointer]:
+                  - /url: https://epathshala.nic.in/
+          - generic [ref=e116]:
+            - generic [ref=e117]:
+              - generic [ref=e118]:
+                - heading "Your teaching context" [level=2] [ref=e119]
+                - paragraph [ref=e120]: Used to tailor suggestions
+              - link "Edit →" [ref=e121] [cursor=pointer]:
+                - /url: /profile
+            - generic [ref=e122]:
+              - generic [ref=e123]: Bihar · Bihar SCERT
+              - generic [ref=e124]: Hindi + English
+            - paragraph [ref=e125]: Curriculum seed covers Grades 1–5 core chapters (NCERT-aligned). Confirm your state syllabus before classroom use.
+      - generic [ref=e126]:
+        - text: THRIVE · Teacher Hub for Resources, Instruction, Verified Information & Empowerment
+        - generic [ref=e127]: Helping teachers thrive, helping students flourish.
+  - alert [ref=e128]

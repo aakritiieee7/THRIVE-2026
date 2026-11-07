@@ -1,0 +1,213 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e3]:
+    - complementary [ref=f2e4]:
+      - link "t THRIVE Teacher support, together" [ref=f2e5] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f2e6]: t
+        - generic [ref=f2e7]:
+          - generic [ref=f2e8]: THRIVE
+          - generic [ref=f2e9]: Teacher support, together
+      - generic [ref=f2e10]: Workspace
+      - navigation [ref=f2e11]:
+        - link "⌂ Home" [ref=f2e12] [cursor=pointer]:
+          - /url: /
+          - generic [ref=f2e13]: ⌂
+          - text: Home
+        - link "✦ Guided setup" [ref=f2e14] [cursor=pointer]:
+          - /url: /guided
+          - generic [ref=f2e15]: ✦
+          - text: Guided setup
+        - link "▦ Curriculum Studio CORE" [ref=f2e16] [cursor=pointer]:
+          - /url: /compiler
+          - generic [ref=f2e17]: ▦
+          - text: Curriculum Studio
+          - generic [ref=f2e18]: CORE
+        - link "✳ Teaching assistant" [ref=f2e19] [cursor=pointer]:
+          - /url: /assistant
+          - generic [ref=f2e20]: ✳
+          - text: Teaching assistant
+        - link "▤ Training centre" [ref=f2e21] [cursor=pointer]:
+          - /url: /training
+          - generic [ref=f2e22]: ▤
+          - text: Training centre
+        - link "◷ Updates" [ref=f2e23] [cursor=pointer]:
+          - /url: /updates
+          - generic [ref=f2e24]: ◷
+          - text: Updates
+        - link "◎ Teacher community" [ref=f2e25] [cursor=pointer]:
+          - /url: /community
+          - generic [ref=f2e26]: ◎
+          - text: Teacher community
+        - link "▣ My resources" [ref=f2e27] [cursor=pointer]:
+          - /url: /resources
+          - generic [ref=f2e28]: ▣
+          - text: My resources
+      - generic [ref=f2e29]:
+        - generic [ref=f2e30]: Your workspace is saved on this device
+        - link "T Teacher Bihar your context ···" [ref=f2e32] [cursor=pointer]:
+          - /url: /profile
+          - generic [ref=f2e33]: T
+          - generic [ref=f2e34]:
+            - generic [ref=f2e35]: Teacher
+            - generic [ref=f2e36]: Bihar your context
+          - generic [ref=f2e37]: ···
+    - main [ref=f2e38]:
+      - generic [ref=f2e39]:
+        - generic [ref=f2e40]:
+          - generic [ref=f2e41]: Workspace
+          - generic [ref=f2e42]: /
+          - generic [ref=f2e43]: Home
+        - generic [ref=f2e44]:
+          - link "Updates" [ref=f2e45] [cursor=pointer]:
+            - /url: /updates
+            - text: ♧
+          - link "T" [ref=f2e47] [cursor=pointer]:
+            - /url: /profile
+      - generic [ref=f2e48]:
+        - generic [ref=f2e49]:
+          - generic [ref=f2e50]: Saturday, November 7 · workspace online
+          - heading "Good morning, Teacher." [level=1] [ref=f2e51]
+          - paragraph [ref=f2e52]: What are you teaching today? Pick up a saved plan, or start a fresh one in five guided stages.
+          - generic [ref=f2e53]:
+            - link "Plan a lesson step by step" [ref=f2e54] [cursor=pointer]:
+              - /url: /guided
+            - link "Open Curriculum Studio" [ref=f2e55] [cursor=pointer]:
+              - /url: /compiler
+            - link "My profile" [ref=f2e56] [cursor=pointer]:
+              - /url: /profile
+        - generic [ref=f2e57]:
+          - generic [ref=f2e58]:
+            - generic [ref=f2e59]: New · Guided setup
+            - heading "New to THRIVE? Plan your first lesson with a worked example." [level=2] [ref=f2e60]
+            - paragraph [ref=f2e61]: A five-stage walkthrough — set your context, describe your room, pick a goal, check the time budget, and watch the plan build itself.
+          - link "Start guided setup" [ref=f2e62] [cursor=pointer]:
+            - /url: /guided
+        - heading "Everything you need to thrive" [level=2] [ref=f2e63]
+        - generic [ref=f2e64]:
+          - link "▦ Lesson Plans Constraint-checked multi-grade schedules in minutes. View all plans" [ref=f2e65] [cursor=pointer]:
+            - /url: /compiler
+            - generic [ref=f2e66]: ▦
+            - generic [ref=f2e67]: Lesson Plans
+            - generic [ref=f2e68]: Constraint-checked multi-grade schedules in minutes.
+            - generic [ref=f2e69]: View all plans
+          - link "✳ Teaching Assistant Ask a question, get source-grounded teaching moves. Ask a question" [ref=f2e70] [cursor=pointer]:
+            - /url: /assistant
+            - generic [ref=f2e71]: ✳
+            - generic [ref=f2e72]: Teaching Assistant
+            - generic [ref=f2e73]: Ask a question, get source-grounded teaching moves.
+            - generic [ref=f2e74]: Ask a question
+          - link "▤ Training Short courses for busy school days. Explore training" [ref=f2e75] [cursor=pointer]:
+            - /url: /training
+            - generic [ref=f2e76]: ▤
+            - generic [ref=f2e77]: Training
+            - generic [ref=f2e78]: Short courses for busy school days.
+            - generic [ref=f2e79]: Explore training
+          - link "◎ Community Practical classroom ideas from other teachers. Join the circle" [ref=f2e80] [cursor=pointer]:
+            - /url: /community
+            - generic [ref=f2e81]: ◎
+            - generic [ref=f2e82]: Community
+            - generic [ref=f2e83]: Practical classroom ideas from other teachers.
+            - generic [ref=f2e84]: Join the circle
+        - heading "Browse by subject Curriculum seed covers Grades 1–5, NCERT-aligned" [level=2] [ref=f2e85]:
+          - text: Browse by subject
+          - generic [ref=f2e86]: Curriculum seed covers Grades 1–5, NCERT-aligned
+        - generic [ref=f2e87]:
+          - link "⊞ Mathematics" [ref=f2e88] [cursor=pointer]:
+            - /url: /compiler
+            - generic [ref=f2e89]: ⊞
+            - generic [ref=f2e90]: Mathematics
+          - link "⚗ Science" [ref=f2e91] [cursor=pointer]:
+            - /url: /compiler
+            - generic [ref=f2e92]: ⚗
+            - generic [ref=f2e93]: Science
+          - link "अ Hindi" [ref=f2e94] [cursor=pointer]:
+            - /url: /compiler
+            - generic [ref=f2e95]: अ
+            - generic [ref=f2e96]: Hindi
+          - link "EN English" [ref=f2e97] [cursor=pointer]:
+            - /url: /compiler
+            - generic [ref=f2e98]: EN
+            - generic [ref=f2e99]: English
+          - link "🌍 EVS" [ref=f2e100] [cursor=pointer]:
+            - /url: /compiler
+            - generic [ref=f2e101]: 🌍
+            - generic [ref=f2e102]: EVS
+          - link "▤ Social Science" [ref=f2e103] [cursor=pointer]:
+            - /url: /compiler
+            - generic [ref=f2e104]: ▤
+            - generic [ref=f2e105]: Social Science
+        - heading "Browse by grade" [level=2] [ref=f2e106]
+        - generic [ref=f2e107]:
+          - link "Foundational Pre-Primary to Grade 2 Explore" [ref=f2e108] [cursor=pointer]:
+            - /url: /compiler
+            - generic [ref=f2e109]: Foundational
+            - generic [ref=f2e110]: Pre-Primary to Grade 2
+            - generic [ref=f2e111]: Explore
+          - link "Preparatory Grade 3-5 Explore" [ref=f2e112] [cursor=pointer]:
+            - /url: /compiler
+            - generic [ref=f2e113]: Preparatory
+            - generic [ref=f2e114]: Grade 3-5
+            - generic [ref=f2e115]: Explore
+          - link "Middle Grade 6-8 Explore" [ref=f2e116] [cursor=pointer]:
+            - /url: /compiler
+            - generic [ref=f2e117]: Middle
+            - generic [ref=f2e118]: Grade 6-8
+            - generic [ref=f2e119]: Explore
+          - link "Secondary Grade 9-12 Explore" [ref=f2e120] [cursor=pointer]:
+            - /url: /compiler
+            - generic [ref=f2e121]: Secondary
+            - generic [ref=f2e122]: Grade 9-12
+            - generic [ref=f2e123]: Explore
+        - generic [ref=f2e124]:
+          - generic [ref=f2e125]:
+            - generic [ref=f2e126]:
+              - generic [ref=f2e127]:
+                - heading "Your saved lesson plans" [level=2] [ref=f2e128]
+                - paragraph [ref=f2e129]: Pick up where you left off
+              - link "All resources" [ref=f2e130] [cursor=pointer]:
+                - /url: /resources
+            - generic [ref=f2e131]:
+              - text: Your lesson plans will appear here after you save them.
+              - link "Create your first plan" [ref=f2e132] [cursor=pointer]:
+                - /url: /compiler
+          - generic [ref=f2e133]:
+            - generic [ref=f2e134]:
+              - generic [ref=f2e135]:
+                - heading "Your teaching context" [level=2] [ref=f2e136]
+                - paragraph [ref=f2e137]: Used to tailor suggestions
+              - link "Edit" [ref=f2e138] [cursor=pointer]:
+                - /url: /profile
+            - generic [ref=f2e139]:
+              - generic [ref=f2e140]: Bihar · Bihar SCERT
+              - generic [ref=f2e141]: Hindi + English
+            - paragraph [ref=f2e142]: Confirm your state syllabus before classroom use.
+        - heading "Focus areas" [level=2] [ref=f2e143]
+        - generic [ref=f2e144]:
+          - link "✦ NIPUN Bharat National Initiative for Proficiency in Reading with Understanding and Numeracy. Learn more" [ref=f2e145] [cursor=pointer]:
+            - /url: /training
+            - generic [ref=f2e146]: ✦
+            - generic [ref=f2e147]: NIPUN Bharat
+            - generic [ref=f2e148]: National Initiative for Proficiency in Reading with Understanding and Numeracy.
+            - generic [ref=f2e149]: Learn more
+          - link "✦ Bhasha Sangam Basic sentences of everyday usage in 22 Indian languages. Learn more" [ref=f2e150] [cursor=pointer]:
+            - /url: /resources
+            - generic [ref=f2e151]: ✦
+            - generic [ref=f2e152]: Bhasha Sangam
+            - generic [ref=f2e153]: Basic sentences of everyday usage in 22 Indian languages.
+            - generic [ref=f2e154]: Learn more
+          - link "✦ Jaadui Pitara Foundational stage content with toys, games, puzzles and posters. Learn more" [ref=f2e155] [cursor=pointer]:
+            - /url: /resources
+            - generic [ref=f2e156]: ✦
+            - generic [ref=f2e157]: Jaadui Pitara
+            - generic [ref=f2e158]: Foundational stage content with toys, games, puzzles and posters.
+            - generic [ref=f2e159]: Learn more
+          - link "✦ Education For All Foundational literacy, numeracy and critical life skills for all citizens. Learn more" [ref=f2e160] [cursor=pointer]:
+            - /url: /training
+            - generic [ref=f2e161]: ✦
+            - generic [ref=f2e162]: Education For All
+            - generic [ref=f2e163]: Foundational literacy, numeracy and critical life skills for all citizens.
+            - generic [ref=f2e164]: Learn more
+      - generic [ref=f2e165]:
+        - text: THRIVE · Teacher Hub for Resources, Instruction, Verified Information & Empowerment
+        - generic [ref=f2e166]: Helping teachers thrive, helping students flourish.
+  - alert [ref=f2e167]

@@ -52,12 +52,13 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  get: <T = any>(path: string) => request<T>(path),
-  post: <T = any>(path: string, body?: unknown) =>
-    request<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) }),
-  put: <T = any>(path: string, body?: unknown) =>
-    request<T>(path, { method: 'PUT', body: body === undefined ? undefined : JSON.stringify(body) }),
-  delete: <T = any>(path: string) => request<T>(path, { method: 'DELETE' }),
+  get: <T = any>(path: string, headers?: Record<string, string>) => request<T>(path, { headers }),
+  post: <T = any>(path: string, body?: unknown, headers?: Record<string, string>) =>
+    request<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body), headers }),
+  put: <T = any>(path: string, body?: unknown, headers?: Record<string, string>) =>
+    request<T>(path, { method: 'PUT', body: body === undefined ? undefined : JSON.stringify(body), headers }),
+  delete: <T = any>(path: string, headers?: Record<string, string>) =>
+    request<T>(path, { method: 'DELETE', headers }),
 }
 
 /** Returns true when the backend answers its health check. */

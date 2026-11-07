@@ -171,8 +171,148 @@ def _llm_reply(query: str, context: Dict[str, Any], language: str) -> Tuple[str,
     return text, sources
 
 
+# ---------------------------------------------------------------------------
+# Structured plan extraction — powers "give me a plan" on WhatsApp and web.
+# The chatbot never reimplements the compiler: when a teacher message carries
+# grade/topic/minutes signals, we run the SAME solver (/compiler/run) and
+# render its timeline as a chat-friendly message. If the input is incomplete
+# or infeasible, we answer honestly with what's missing instead of faking a
+# schedule.
+# ---------------------------------------------------------------------------
+
+_GRADE_RE = re.compile(r'grade\s*([1-9]|1[0-2])(?!\d)', re.I)
+_MIN_RE = re.compile(r'(\d{1,3})\s*(?:minutes?|mins?)\b', re.I)
+
+
+def _extract_grades(query: str) -> list[str]:
+    """Capture "Grade 2, 3 and 4" style lists, not just the first mention.
+
+    Finds the first explicit 'Grade N' and then consumes the list that
+    continues after it (commas, 'and', '&', optional repeated 'grade').
+    """
+    grades: list[str] = []
+    m = _GRADE_RE.search(query)
+    if not m:
+        return grades
+    grades.append(m.group(1))
+    pos = m.end()
+    cont = re.compile(r'\s*(?:[,&]\s*|\s+and\s+|\s+or\s+)(?:grade\s*)?([1-9]|1[0-2])(?!\d)', re.I)
+    while len(grades) < 6:
+        m2 = cont.match(query, pos)
+        if not m2 or m2.group(1) in grades:
+            break
+        grades.append(m2.group(1))
+        pos = m2.end()
+    return grades
+
+
+def extract_plan_request(query: str, context: Dict[str, Any] | None = None) -> Dict[str, Any] | None:
+    """Detect a multi-grade lesson-plan request in free text.
+
+    Returns {'grades': [...], 'minutes': int, 'subject': str} when the message
+    plausibly asks for a plan, else None. Grades come from the message first,
+    then the teacher's context — never invented beyond that.
+    """
+    context = context or {}
+    grades = _extract_grades(query)
+    minutes = _MIN_RE.search(query)
+    subj = None
+    for s in ('Mathematics', 'Environmental Studies', 'Language', 'Science'):
+        if s.lower() in query.lower() or s.lower().split()[0] in query.lower():
+            subj = s
+            break
+    if not grades and not minutes:
+        return None
+    if not grades:
+        ctx_grades = re.findall(r'\d+', str(context.get('grades', '')))
+        grades = ctx_grades
+    if not grades:
+        return None
+    seen, unique = set(), []
+    for g in grades:
+        if g not in seen:
+            seen.add(g)
+            unique.append(g)
+    return {
+        'grades': unique[:6],
+        'minutes': int(minutes.group(1)) if minutes else 45,
+        'subject': subj or (str(context.get('subjects') or '').split(',')[0].strip() or 'Mathematics'),
+    }
+
+
+def _fmt_clock(m: int) -> str:
+    return f'{m // 60:02d}:{m % 60:02d}'
+
+
+def plan_reply(req: Dict[str, Any], language: str = 'English') -> Dict[str, Any]:
+    """Run the constraint compiler and render a chat-friendly schedule.
+
+    Returns {reply, sources, mode} — same contract as respond(), so callers
+    (web bridge, WhatsApp webhook) treat both paths identically.
+    """
+    from .solver import CompileInput, GradeRequest, InfeasiblePlan, compile_schedule
+
+    subject = req['subject']
+    grades = [GradeRequest(grade=str(g), topic=f'{subject} practice for Grade {g}',
+                           objective=f'Practise one {subject.lower()} idea suitable for Grade {g}')
+              for g in req['grades']]
+    inp = CompileInput(subject=subject, medium='English', board='context',
+                       minutes=int(req['minutes']), grades=grades)
+    try:
+        result = compile_schedule(inp)
+    except InfeasiblePlan as e:
+        lines = [f'I cannot fit {len(grades)} grade groups into {req["minutes"]} minutes:', '']
+        lines += [f'• {err}' for err in e.errors]
+        lines += ['', 'Tell me the topics you are teaching (e.g. "Grade 2 numbers, Grade 3 shapes, '
+                      'Grade 4 patterns") and I will plan each group’s activity.']
+        return {'reply': '\n'.join(lines),
+                'sources': [{'title': 'THRIVE schedule constraints', 'org': 'THRIVE',
+                             'why': 'pattern-based fallback, not an official curriculum source'}],
+                'mode': 'local-grounded'}
+
+    lines = [f'{subject} · {req["minutes"]} minutes · Grades {", ".join(req["grades"])}', '']
+    for s in result['slots']:
+        label = {'opening': 'Whole-class opening', 'turn': f'Teacher focus · {s["focus"]}',
+                 'transition': 'Transition', 'closing': 'Closing check'}[s['kind']]
+        lines.append(f'{_fmt_clock(s["start"])}–{_fmt_clock(s["end"])}  {label}')
+        lines.append(f'  {s["activity"].split(".")[0]}.')
+        if s['kind'] == 'turn':
+            others = [l['who'] for l in s.get('lanes', []) if not l.get('is_teacher')
+                      and l['who'] != s['focus']]
+            if others:
+                lines.append(f'  While you teach: {", ".join(others)} do the "when you finish" task.')
+    lines += ['', 'Closing check (one prompt per grade):']
+    lines += [f'• Grade {a["grade"]}: {a["prompt"]}' for a in result['assessments']]
+    lines += ['', 'Learning goals above are generated from your request — confirm each against '
+                  'your official syllabus before class. Save the full timeline in Curriculum Studio.']
+    return {'reply': '\n'.join(lines),
+            'sources': result['sources'] + [{'title': 'THRIVE schedule constraints', 'org': 'THRIVE',
+                                             'why': 'schedule generated by the constraint compiler'}],
+            'mode': 'local-grounded'}
+
+
+def respond_plan(query: str, context: Dict[str, Any] | None = None,
+                 language: str = 'English') -> Dict[str, Any] | None:
+    """If the message is a plan request, return a compiler-built reply; else None."""
+    req = extract_plan_request(query, context)
+    if not req:
+        return None
+    try:
+        return plan_reply(req, language)
+    except Exception:
+        return None
+
+
 def respond(query: str, context: Dict[str, Any], language: str = 'English') -> Dict[str, Any]:
-    """Return {reply, sources, mode}. Falls back automatically on any failure."""
+    """Return {reply, sources, mode}. Falls back automatically on any failure.
+
+    Plan-shaped messages ("Grade 2, 3 and 4, 40 minutes of mathematics…") are
+    answered with a compiler-built schedule before any other path, so web chat
+    and WhatsApp share the same planning brain.
+    """
+    plan = respond_plan(query, context, language)
+    if plan is not None:
+        return plan
     if os.environ.get('LLM_API_KEY', '').strip():
         try:
             reply, sources = _llm_reply(query, context, language)

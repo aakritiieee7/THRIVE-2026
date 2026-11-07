@@ -1,0 +1,494 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - link "t THRIVE Teacher support, together" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e6]: t
+        - generic [ref=e7]:
+          - generic [ref=e8]: THRIVE
+          - generic [ref=e9]: Teacher support, together
+      - generic [ref=e10]: Workspace
+      - navigation "Main" [ref=e11]:
+        - link "Home" [ref=e12] [cursor=pointer]:
+          - /url: /
+        - link "Guided setup" [ref=e18] [cursor=pointer]:
+          - /url: /guided
+        - link "Curriculum Studio CORE" [ref=e23] [cursor=pointer]:
+          - /url: /compiler
+          - text: Curriculum Studio
+          - generic [ref=e29]: CORE
+        - link "Teaching assistant" [ref=e30] [cursor=pointer]:
+          - /url: /assistant
+        - link "Training centre" [ref=e35] [cursor=pointer]:
+          - /url: /training
+        - link "Verified updates" [ref=e40] [cursor=pointer]:
+          - /url: /updates
+        - link "Teacher community" [ref=e45] [cursor=pointer]:
+          - /url: /community
+        - link "My resources" [ref=e51] [cursor=pointer]:
+          - /url: /resources
+      - generic [ref=e55]:
+        - generic [ref=e56]: Your workspace is saved on this device
+        - link "T Sign in Bihar your context ···" [ref=e58] [cursor=pointer]:
+          - /url: /profile
+          - generic [ref=e59]: T
+          - generic [ref=e60]:
+            - generic [ref=e61]: Sign in
+            - generic [ref=e62]: Bihar your context
+          - generic [ref=e63]: ···
+    - main [ref=e64]:
+      - generic [ref=e65]:
+        - generic [ref=e66]:
+          - generic [ref=e67]: Workspace
+          - generic [ref=e68]: /
+          - generic [ref=e69]: Curriculum Studio
+        - generic [ref=e70]:
+          - link "Verified updates" [ref=e71] [cursor=pointer]:
+            - /url: /updates
+          - link "Teacher community" [ref=e76] [cursor=pointer]:
+            - /url: /community
+          - link "My profile" [ref=e81] [cursor=pointer]:
+            - /url: /profile
+            - text: T
+      - generic [ref=e82]:
+        - generic [ref=e83]:
+          - generic [ref=e84]:
+            - generic [ref=e85]: Curriculum Studio · multi-grade compiler
+            - heading "One classroom. One coordinated plan." [level=1] [ref=e86]
+            - paragraph [ref=e87]: Constraint-checked schedules across your grade groups — shared openings only when goals genuinely align, a teacher-led turn for every grade, and exact minute accounting.
+          - generic [ref=e88]:
+            - button "Load demo scenario" [ref=e89] [cursor=pointer]
+            - link "Guided walkthrough" [ref=e94] [cursor=pointer]:
+              - /url: /guided
+        - generic [ref=e98]: Curriculum coverage is partial. Seeded NCERT-aligned chapters for Grades 1–5 (Mathematics, Environmental Studies). Bihar SCERT content has not been ingested — teacher-entered goals are treated as context, and every suggestion should be reviewed against your official syllabus.
+        - generic [ref=e99]:
+          - generic [ref=e100]:
+            - generic [ref=e101]:
+              - generic [ref=e102]:
+                - heading "Set up your classroom" [level=2] [ref=e103]
+                - paragraph [ref=e104]: Plan around the whole room, not a separate lesson per grade.
+              - generic [ref=e105]: Plan a period
+            - generic [aria-hidden] [ref=e106]:
+              - generic [ref=e107]:
+                - generic [ref=e108]: "3"
+                - text: Grade groups
+              - generic [ref=e109]:
+                - generic [ref=e110]: 45 min
+                - text: Class time
+              - generic [ref=e111]:
+                - generic [ref=e112]: 0 min
+                - text: Transitions
+              - generic [ref=e113]:
+                - generic [ref=e114]: Ready
+                - text: Feasibility
+            - generic [ref=e115]:
+              - generic [ref=e116]:
+                - generic [ref=e117]: Curriculum / board
+                - combobox "Curriculum / board" [ref=e118]:
+                  - option "Bihar SCERT" [selected]
+                  - option "NCERT"
+                  - option "Other — teacher-provided goals"
+                - generic [ref=e119]: Seeded chapters are NCERT-aligned; other boards use your goals as context.
+              - generic [ref=e120]:
+                - generic [ref=e121]: Medium of instruction
+                - combobox "Medium of instruction" [ref=e122]:
+                  - option "Hindi" [selected]
+                  - option "English"
+                  - option "Hindi + English"
+              - generic [ref=e123]:
+                - generic [ref=e124]: Subject
+                - combobox "Subject" [ref=e125]:
+                  - option "Mathematics" [selected]
+                  - option "Environmental Studies"
+                  - option "Language"
+                  - option "Science"
+                  - option "Social Science"
+              - generic [ref=e126]:
+                - generic [ref=e127]: Available class time
+                - spinbutton "Available class time" [ref=e128]: "45"
+            - generic [ref=e129]:
+              - button "30 min" [ref=e130] [cursor=pointer]
+              - button "35 min" [ref=e131] [cursor=pointer]
+              - button "40 min" [ref=e132] [cursor=pointer]
+              - button "45 min" [ref=e133] [cursor=pointer]
+              - button "50 min" [ref=e134] [cursor=pointer]
+              - button "60 min" [ref=e135] [cursor=pointer]
+            - status [ref=e136]:
+              - generic [ref=e139]: 45 minutes covers the 25-minute minimum for 3 groups.
+              - generic [ref=e142]: 45 / 25 min
+            - generic [ref=e143]:
+              - generic [ref=e144]:
+                - text: Grade groups & learning goals
+                - generic [ref=e145]: Pick a seeded chapter or enter your own goal — objectives auto-fill from curriculum outcomes when matched.
+              - generic [ref=e146]: 3 / 6 groups
+            - generic [ref=e147]:
+              - generic [ref=e148]:
+                - generic [ref=e149]: "3"
+                - generic [ref=e150]:
+                  - generic [ref=e151]: Grade 3 group
+                  - generic [ref=e152]: Taught separately
+              - button "Remove Grade 3 group" [ref=e153] [cursor=pointer]
+              - generic [ref=e156]:
+                - generic [ref=e157]:
+                  - generic [ref=e158]: Grade
+                  - combobox "Grade" [ref=e159]:
+                    - option "1"
+                    - option "2"
+                    - option "3" [selected]
+                    - option "4"
+                    - option "5"
+                    - option "6"
+                    - option "7"
+                    - option "8"
+                    - option "9"
+                    - option "10"
+                    - option "11"
+                    - option "12"
+                - generic [ref=e160]:
+                  - generic [ref=e161]: Topic or chapter
+                  - combobox "Topic or chapter" [ref=e162]: Shapes and Patterns
+                  - generic [ref=e163]: "Curriculum match: Mathematics · m3-ch1 · 2 outcomes"
+                - generic [ref=e166]:
+                  - generic [ref=e167]: Learning goal
+                  - textbox "Learning goal" [ref=e168]:
+                    - /placeholder: What will learners do and show?
+                    - text: Recognize common 2D shapes and create a repeating pattern
+                  - generic [ref=e169]:
+                    - button "✓ Recognize and name common 2D shapes." [ref=e170] [cursor=pointer]
+                    - button "✓ Create patterns using basic shapes." [ref=e171] [cursor=pointer]
+              - generic [ref=e172]:
+                - generic [ref=e173]: Shared group
+                - combobox "Shared group" [ref=e174]:
+                  - option "Taught separately (no shared opening)" [selected]
+                  - option "Number sense (shared)"
+                  - option "Shapes & patterns (shared)"
+                  - option "Reading & oral language (shared)"
+                  - option "Environment & living world (shared)"
+                - generic [ref=e175]: Grades only share an opening when they share the same group — never forced.
+            - generic [ref=e282]:
+              - generic [ref=e283]:
+                - generic [ref=e284]: "4"
+                - generic [ref=e285]:
+                  - generic [ref=e286]: Grade 4 group
+                  - generic [ref=e287]: Taught separately
+              - button "Remove Grade 4 group" [ref=e288] [cursor=pointer]
+              - generic [ref=e291]:
+                - generic [ref=e292]:
+                  - generic [ref=e293]: Grade
+                  - combobox "Grade" [ref=e294]:
+                    - option "1"
+                    - option "2"
+                    - option "3"
+                    - option "4" [selected]
+                    - option "5"
+                    - option "6"
+                    - option "7"
+                    - option "8"
+                    - option "9"
+                    - option "10"
+                    - option "11"
+                    - option "12"
+                - generic [ref=e295]:
+                  - generic [ref=e296]: Topic or chapter
+                  - combobox "Topic or chapter" [ref=e297]: Numbers up to 1000
+                  - generic [ref=e298]: "Curriculum match: Mathematics · m4-ch2 · 1 outcomes"
+                - generic [ref=e301]:
+                  - generic [ref=e302]: Learning goal
+                  - textbox "Learning goal" [ref=e303]:
+                    - /placeholder: What will learners do and show?
+                    - text: Read, write and place three-digit numbers on a number line
+                  - button "✓ Compare and order four-digit numbers." [ref=e305] [cursor=pointer]
+              - generic [ref=e306]:
+                - generic [ref=e307]: Shared group
+                - combobox "Shared group" [ref=e308]:
+                  - option "Taught separately (no shared opening)" [selected]
+                  - option "Shapes & patterns (shared)"
+                  - option "Reading & oral language (shared)"
+                  - option "Environment & living world (shared)"
+                - generic [ref=e309]: Grades only share an opening when they share the same group — never forced.
+            - generic [ref=e310]:
+              - generic [ref=e311]:
+                - generic [ref=e312]: "5"
+                - generic [ref=e313]:
+                  - generic [ref=e314]: Grade 5 group
+                  - generic [ref=e315]: Taught separately
+              - button "Remove Grade 5 group" [ref=e316] [cursor=pointer]
+              - generic [ref=e319]:
+                - generic [ref=e320]:
+                  - generic [ref=e321]: Grade
+                  - combobox "Grade" [ref=e322]:
+                    - option "1"
+                    - option "2"
+                    - option "3"
+                    - option "4"
+                    - option "5" [selected]
+                    - option "6"
+                    - option "7"
+                    - option "8"
+                    - option "9"
+                    - option "10"
+                    - option "11"
+                    - option "12"
+                - generic [ref=e323]:
+                  - generic [ref=e324]: Topic or chapter
+                  - combobox "Topic or chapter" [ref=e325]: Fractions
+                  - generic [ref=e326]: "Curriculum match: Mathematics · m5-ch2 · 1 outcomes"
+                - generic [ref=e329]:
+                  - generic [ref=e330]: Learning goal
+                  - textbox "Learning goal" [ref=e331]:
+                    - /placeholder: What will learners do and show?
+                    - text: Represent and compare simple fractions using paper folding
+                  - button "✓ Represent and compare simple fractions." [ref=e333] [cursor=pointer]
+              - generic [ref=e334]:
+                - generic [ref=e335]: Shared group
+                - combobox "Shared group" [ref=e336]:
+                  - option "Taught separately (no shared opening)" [selected]
+                  - option "Shapes & patterns (shared)"
+                  - option "Reading & oral language (shared)"
+                  - option "Environment & living world (shared)"
+                - generic [ref=e337]: Grades only share an opening when they share the same group — never forced.
+            - button "Add another grade group" [ref=e204] [cursor=pointer]
+            - generic [ref=e208]:
+              - generic [ref=e209]:
+                - generic [ref=e210]: Teaching materials available
+                - textbox "Teaching materials available" [ref=e211]:
+                  - /placeholder: e.g. seeds, paper, chalk, number cards
+                  - text: paper, chalk, classroom objects
+                - generic [ref=e212]: Every suggestion uses only these — nothing invented.
+              - generic [ref=e213]:
+                - generic [ref=e214]: Transition time between groups
+                - spinbutton "Transition time between groups" [ref=e215]: "0"
+                - generic [ref=e216]: Minutes for material swaps — budgeted out of your period.
+            - generic [ref=e217]:
+              - button "Generate coordinated plan" [ref=e218] [cursor=pointer]
+              - button "Start a new plan" [ref=e341] [cursor=pointer]
+          - complementary [ref=e222]:
+            - generic [ref=e224]:
+              - heading "Planning guardrails" [level=2] [ref=e225]
+              - paragraph [ref=e226]: Enforced by the constraint engine
+            - generic [ref=e227]:
+              - generic [ref=e228]:
+                - generic [ref=e229]: "01"
+                - generic [ref=e230]:
+                  - text: Exact fit
+                  - generic [ref=e231]: The plan fills exactly 45 minutes — impossible inputs are rejected with explicit reasons.
+              - generic [ref=e232]:
+                - generic [ref=e233]: "02"
+                - generic [ref=e234]:
+                  - text: One teacher, one turn
+                  - generic [ref=e235]: Attention is never double-booked. Waiting groups get independent tasks, not worksheets to sit on.
+              - generic [ref=e236]:
+                - generic [ref=e237]: "03"
+                - generic [ref=e238]:
+                  - text: No forced merging
+                  - generic [ref=e239]: Grades are taught together only when you mark a genuine shared group.
+            - generic [ref=e241]: "Minute budget: 25 min minimum = 4 min opening + 6 min closing + 5 min per group."
+            - heading "Curriculum ground truth" [level=2] [ref=e245]
+            - generic [ref=e246]:
+              - generic [ref=e247]: Grades 1–5 · Mathematics (2 chapters/grade)
+              - generic [ref=e250]: Grades 1, 3, 5 · Environmental Studies
+              - generic [ref=e253]: Bihar SCERT — not ingested, use as context only
+        - generic [ref=e347]:
+          - generic [ref=e348]:
+            - generic [ref=e349]:
+              - generic [ref=e350]: Coordinated classroom schedule
+              - heading "Mathematics · Grades 3 & 4 & 5" [level=2] [ref=e351]
+              - paragraph [ref=e352]: "Hindi · Bihar SCERT · engine: constraint-constructive"
+            - generic [ref=e353]:
+              - button "Edit inputs" [ref=e354] [cursor=pointer]
+              - button "Regenerate" [ref=e357] [cursor=pointer]
+              - button "Copy" [ref=e363] [cursor=pointer]
+              - button "Print" [ref=e367] [cursor=pointer]
+              - button "CSV" [ref=e372] [cursor=pointer]
+              - button "Save plan" [ref=e375] [cursor=pointer]
+          - generic [ref=e379]:
+            - generic [ref=e380]:
+              - generic [ref=e381]: "45"
+              - text: Total minutes
+            - generic [ref=e382]:
+              - generic [ref=e383]: "5"
+              - text: Stages
+            - generic [ref=e384]:
+              - generic [ref=e385]: "3"
+              - text: Grade groups
+            - generic [ref=e386]:
+              - generic [ref=e387]: "3"
+              - text: Assessments
+          - generic [ref=e388]:
+            - generic [ref=e389]:
+              - generic [ref=e390]: Opening
+              - text: whole class
+            - generic [ref=e391]:
+              - generic [ref=e392]: Teacher turn
+              - text: one grade at a time
+            - generic [ref=e393]:
+              - generic [ref=e394]: Closing
+              - text: check for all
+            - generic [ref=e395]:
+              - text: Lanes show
+              - generic [ref=e396]: you
+              - text: and every grade at the same moment — one focus, never double-booked
+          - generic [ref=e397]:
+            - generic [ref=e398]:
+              - generic [ref=e399]:
+                - generic [ref=e400]: 00:00–00:05
+                - generic [ref=e401]: 5 min
+                - generic [ref=e402]: opening
+              - generic [ref=e403]:
+                - generic [ref=e404]: Whole class
+                - generic [ref=e405]: Teacher-led · Connect learners to today’s idea
+                - paragraph [ref=e406]: "Whole-class opening: one familiar question or demonstration in mathematics to settle attention and name today’s goal for Grade 3, Grade 4, Grade 5."
+                - generic [ref=e407]:
+                  - generic [ref=e408]:
+                    - generic [ref=e409]: You (teacher)
+                    - generic [ref=e410]: Ask one settling question and name each grade’s goal
+                  - generic [ref=e411]:
+                    - generic [ref=e412]: Grade 3
+                    - generic [ref=e413]: Answer the opening question; note today’s goal
+                  - generic [ref=e414]:
+                    - generic [ref=e415]: Grade 4
+                    - generic [ref=e416]: Answer the opening question; note today’s goal
+                  - generic [ref=e417]:
+                    - generic [ref=e418]: Grade 5
+                    - generic [ref=e419]: Answer the opening question; note today’s goal
+                - generic [ref=e420]: Listen for prior ideas; state each grade’s goal for the lesson.
+            - generic [ref=e423]:
+              - generic [ref=e424]:
+                - generic [ref=e425]: 00:05–00:17
+                - generic [ref=e426]: 12 min
+                - generic [ref=e427]: turn
+              - generic [ref=e428]:
+                - generic [ref=e429]: Grade 3
+                - generic [ref=e430]: Teacher-led · Recognize common 2D shapes and create a repeating pattern
+                - paragraph [ref=e431]: "Teacher-led focus on “Shapes and Patterns”. Model one example, then learners try one. While you work with Grade 3: Grade 4, Grade 5 do prepared independent work — “when you finish” tasks on the board using paper, chalk, classroom objects; walk over for a 30-second check if a group finishes early."
+                - generic [ref=e432]:
+                  - generic [ref=e433]:
+                    - generic [ref=e434]: You (teacher)
+                    - generic [ref=e435]: "Teacher-led focus: Shapes and Patterns"
+                  - generic [ref=e436]:
+                    - generic [ref=e437]: Grade 3
+                    - generic [ref=e438]: "With you: model, try one, explain"
+                  - generic [ref=e439]:
+                    - generic [ref=e440]: Grade 4
+                    - generic [ref=e441]: Independent “when you finish” task from the board
+                  - generic [ref=e442]:
+                    - generic [ref=e443]: Grade 5
+                    - generic [ref=e444]: Independent “when you finish” task from the board
+                - generic [ref=e450]:
+                  - generic [ref=e451]: "Early finishers:"
+                  - text: "If a waiting group finishes early: give the extension prompt on the board, or pair a finished learner with one still working — swap to the Grade 3 table for a 30-second check before the closing check."
+                - generic [ref=e452]: "Ask one learner from Grade 3 to explain: Recognize common 2D shapes and create a repeating pattern"
+            - generic [ref=e455]:
+              - generic [ref=e456]:
+                - generic [ref=e457]: 00:17–00:28
+                - generic [ref=e458]: 11 min
+                - generic [ref=e459]: turn
+              - generic [ref=e460]:
+                - generic [ref=e461]: Grade 4
+                - generic [ref=e462]: Teacher-led · Read, write and place three-digit numbers on a number line
+                - paragraph [ref=e463]: "Teacher-led focus on “Numbers up to 1000”. Model one example, then learners try one. While you work with Grade 4: Grade 3, Grade 5 do prepared independent work — “when you finish” tasks on the board using paper, chalk, classroom objects; walk over for a 30-second check if a group finishes early."
+                - generic [ref=e464]:
+                  - generic [ref=e465]:
+                    - generic [ref=e466]: You (teacher)
+                    - generic [ref=e467]: "Teacher-led focus: Numbers up to 1000"
+                  - generic [ref=e468]:
+                    - generic [ref=e469]: Grade 4
+                    - generic [ref=e470]: "With you: model, try one, explain"
+                  - generic [ref=e471]:
+                    - generic [ref=e472]: Grade 3
+                    - generic [ref=e473]: Independent “when you finish” task from the board
+                  - generic [ref=e474]:
+                    - generic [ref=e475]: Grade 5
+                    - generic [ref=e476]: Independent “when you finish” task from the board
+                - generic [ref=e482]:
+                  - generic [ref=e483]: "Early finishers:"
+                  - text: "If a waiting group finishes early: give the extension prompt on the board, or pair a finished learner with one still working — swap to the Grade 4 table for a 30-second check before the closing check."
+                - generic [ref=e484]: "Ask one learner from Grade 4 to explain: Read, write and place three-digit numbers on a number line"
+            - generic [ref=e487]:
+              - generic [ref=e488]:
+                - generic [ref=e489]: 00:28–00:39
+                - generic [ref=e490]: 11 min
+                - generic [ref=e491]: turn
+              - generic [ref=e492]:
+                - generic [ref=e493]: Grade 5
+                - generic [ref=e494]: Teacher-led · Represent and compare simple fractions using paper folding
+                - paragraph [ref=e495]: "Teacher-led focus on “Fractions”. Model one example, then learners try one. While you work with Grade 5: Grade 3, Grade 4 do prepared independent work — “when you finish” tasks on the board using paper, chalk, classroom objects; walk over for a 30-second check if a group finishes early."
+                - generic [ref=e496]:
+                  - generic [ref=e497]:
+                    - generic [ref=e498]: You (teacher)
+                    - generic [ref=e499]: "Teacher-led focus: Fractions"
+                  - generic [ref=e500]:
+                    - generic [ref=e501]: Grade 5
+                    - generic [ref=e502]: "With you: model, try one, explain"
+                  - generic [ref=e503]:
+                    - generic [ref=e504]: Grade 3
+                    - generic [ref=e505]: Independent “when you finish” task from the board
+                  - generic [ref=e506]:
+                    - generic [ref=e507]: Grade 4
+                    - generic [ref=e508]: Independent “when you finish” task from the board
+                - generic [ref=e514]:
+                  - generic [ref=e515]: "Early finishers:"
+                  - text: "If a waiting group finishes early: give the extension prompt on the board, or pair a finished learner with one still working — swap to the Grade 5 table for a 30-second check before the closing check."
+                - generic [ref=e516]: "Ask one learner from Grade 5 to explain: Represent and compare simple fractions using paper folding"
+            - generic [ref=e519]:
+              - generic [ref=e520]:
+                - generic [ref=e521]: 00:39–00:45
+                - generic [ref=e522]: 6 min
+                - generic [ref=e523]: closing
+              - generic [ref=e524]:
+                - generic [ref=e525]: All groups
+                - generic [ref=e526]: Teacher-led · Check understanding and close
+                - paragraph [ref=e527]: "Closing check: one prompt per grade group (see checks). Note who is independent, who needed a hint and who needs another model — use this to open the next lesson."
+                - generic [ref=e528]:
+                  - generic [ref=e529]:
+                    - generic [ref=e530]: You (teacher)
+                    - generic [ref=e531]: Run one closing prompt per grade group
+                  - generic [ref=e532]:
+                    - generic [ref=e533]: Grade 3
+                    - generic [ref=e534]: "Show or explain: Recognize common 2D shapes and create a repeating pattern"
+                  - generic [ref=e535]:
+                    - generic [ref=e536]: Grade 4
+                    - generic [ref=e537]: "Show or explain: Read, write and place three-digit numbers on a number line"
+                  - generic [ref=e538]:
+                    - generic [ref=e539]: Grade 5
+                    - generic [ref=e540]: "Show or explain: Represent and compare simple fractions using paper folding"
+                - generic [ref=e541]: Grade-specific prompts below.
+          - heading "Materials required" [level=2] [ref=e547]
+          - generic [ref=e548]:
+            - generic [ref=e549]: paper
+            - generic [ref=e550]: chalk
+            - generic [ref=e551]: classroom objects
+          - generic [ref=e554]:
+            - heading "Learning outcomes & quick checks" [level=2] [ref=e555]
+            - paragraph [ref=e556]: One prompt per grade group — use at the closing check.
+          - generic [ref=e557]:
+            - generic [ref=e558]:
+              - generic [ref=e559]: Grade 3 · assessment
+              - paragraph [ref=e560]: "Show or explain: “Recognize common 2D shapes and create a repeating pattern”"
+              - generic [ref=e561]: Offer one concrete example, then a second attempt.
+            - generic [ref=e562]:
+              - generic [ref=e563]: Grade 4 · assessment
+              - paragraph [ref=e564]: "Show or explain: “Read, write and place three-digit numbers on a number line”"
+              - generic [ref=e565]: Offer one concrete example, then a second attempt.
+            - generic [ref=e566]:
+              - generic [ref=e567]: Grade 5 · assessment
+              - paragraph [ref=e568]: "Show or explain: “Represent and compare simple fractions using paper folding”"
+              - generic [ref=e569]: Offer one concrete example, then a second attempt.
+          - generic [ref=e571]:
+            - generic [ref=e572]: Learning goals entered by the teacher; confirm against your official syllabus before classroom use.
+            - generic [ref=e575]: "Seeded curriculum: NCERT-aligned Grades 1–5, Mathematics & EVS only — confirm against your official syllabus."
+      - generic [ref=e257]:
+        - text: THRIVE · Teacher Hub for Resources, Instruction, Verified Information & Empowerment
+        - generic [ref=e258]: "Curriculum seed: NCERT-aligned Grades 1–5 (Mathematics, EVS). Review against your official syllabus."
+    - navigation "Primary" [ref=e259]:
+      - link "Home" [ref=e260] [cursor=pointer]:
+        - /url: /
+      - link "Plan" [ref=e265] [cursor=pointer]:
+        - /url: /compiler
+      - link "Ask" [ref=e270] [cursor=pointer]:
+        - /url: /assistant
+      - link "Learn" [ref=e274] [cursor=pointer]:
+        - /url: /training
+      - link "Saved" [ref=e278] [cursor=pointer]:
+        - /url: /resources
+  - alert [ref=e281]

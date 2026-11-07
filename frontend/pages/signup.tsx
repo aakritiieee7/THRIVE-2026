@@ -37,7 +37,7 @@ export default function Signup() {
     <Layout title="Create account">
       <div className="page-heading">
         <div>
-          <div className="eyebrow">CREATE YOUR TEACHER ACCOUNT</div>
+          <div className="eyebrow">Create your teacher account</div>
           <h1>Start with your workspace.</h1>
           <p>An account keeps your lesson plans, progress and community activity together.</p>
         </div>
@@ -57,7 +57,7 @@ export default function Signup() {
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" autoComplete="new-password" />
           </div>
           {error && <div className="notice" style={{ background: '#fbefec', borderColor: '#f2d8d0', color: '#925e4d', marginBottom: 12 }}>{error}</div>}
-          <button className="btn btn-primary" type="submit" disabled={busy}>{busy ? 'Creating account…' : 'Create account →'}</button>
+          <button className="btn btn-primary" type="submit" disabled={busy}>{busy ? 'Creating account…' : 'Create account'}</button>
         </form>
         <div className="divider" />
         <p className="muted" style={{ fontSize: 10, margin: 0 }}>

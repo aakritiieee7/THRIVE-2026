@@ -1,0 +1,155 @@
+[     240ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:29834
+[     272ms] [LOG] [HMR] connected @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:47
+[  159385ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/hot-dev-client.js:180
+[  159534ms] [LOG] [Fast Refresh] done in 150ms @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/hot-dev-client.js:157
+[ 1555240ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1560247ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1565257ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1570265ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1575270ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1580278ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1585289ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1590313ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1595345ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1600403ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1605523ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1610636ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1616190ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1621824ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1629264ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1636772ms] [WARNING] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: WebSocket is closed before the connection is established. @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:60
+[ 1642870ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1650374ms] [WARNING] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: WebSocket is closed before the connection is established. @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:60
+[ 1656733ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1664236ms] [WARNING] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: WebSocket is closed before the connection is established. @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:60
+[ 1671740ms] [WARNING] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: WebSocket is closed before the connection is established. @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:60
+[ 1676744ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1681747ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1686751ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1691754ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1696761ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1701766ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1706780ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1711793ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1716809ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1721842ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1726950ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1732225ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1737560ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1743045ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1749680ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:75
+[ 1757184ms] [WARNING] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: WebSocket is closed before the connection is established. @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:60
+[ 1764687ms] [WARNING] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: WebSocket is closed before the connection is established. @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:60
+[ 1772190ms] [WARNING] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr' failed: WebSocket is closed before the connection is established. @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:60
+[ 1778652ms] [LOG] [HMR] connected @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:47
+[ 1778679ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/hot-dev-client.js:180
+[ 1779470ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/_next/static/webpack/7a910e521b13d56d.webpack.hot-update.json:0
+[ 1779494ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/hot-dev-client.js:180
+[ 1779631ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/hot-dev-client.js:180
+[ 1779761ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/_next/static/webpack/7a910e521b13d56d.webpack.hot-update.json:0
+[ 1780439ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:29834
+[ 1780504ms] [ERROR] Warning: Text content did not match. Server: "%s" Client: "%s"%s starting your guest session… 20 free questions per hour as a guest 
+    at span
+    at div
+    at header
+    at div
+    at Try (webpack-internal:///./pages/try.tsx:38:78)
+    at App (webpack-internal:///./pages/_app.tsx:16:11)
+    at PathnameContextProviderAdapter (webpack-internal:///./node_modules/next/dist/shared/lib/router/adapters.js:80:11)
+    at ErrorBoundary (webpack-internal:///./node_modules/next/dist/compiled/@next/react-dev-overlay/dist/client.js:306:63)
+    at ReactDevOverlay (webpack-internal:///./node_modules/next/dist/compiled/@next/react-dev-overlay/dist/client.js:858:919)
+    at Container (webpack-internal:///./node_modules/next/dist/client/index.js:92:1)
+    at AppContainer (webpack-internal:///./node_modules/next/dist/client/index.js:197:11)
+    at Root (webpack-internal:///./node_modules/next/dist/client/index.js:380:11) 
+
+See more info here: https://nextjs.org/docs/messages/react-hydration-error @ webpack-internal:///./node_modules/next/dist/compiled/@next/react-dev-overlay/dist/client.js:1
+[ 1780505ms] [ERROR] Warning: An error occurred during hydration. The server HTML was replaced with client content in <%s>. div 
+
+See more info here: https://nextjs.org/docs/messages/react-hydration-error @ webpack-internal:///./node_modules/next/dist/compiled/@next/react-dev-overlay/dist/client.js:1
+[ 1780515ms] Error: Text content does not match server-rendered HTML.
+
+Warning: Text content did not match. Server: "starting your guest session…" Client: "20 free questions per hour as a guest"
+
+See more info here: https://nextjs.org/docs/messages/react-hydration-error
+    at checkForUnmatchedText (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:9647:11)
+    at didNotMatchHydratedTextInstance (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:11394:5)
+    at prepareToHydrateHostTextInstance (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:12606:13)
+    at completeWork (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:22227:17)
+    at completeUnitOfWork (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:26591:16)
+    at performUnitOfWork (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:26563:5)
+    at workLoopSync (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:26461:5)
+    at renderRootSync (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:26429:7)
+    at performConcurrentWorkOnRoot (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:25733:74)
+    at workLoop (webpack-internal:///./node_modules/scheduler/cjs/scheduler.development.js:266:34)
+    at flushWork (webpack-internal:///./node_modules/scheduler/cjs/scheduler.development.js:239:14)
+    at MessagePort.performWorkUntilDeadline (webpack-internal:///./node_modules/scheduler/cjs/scheduler.development.js:533:21)
+[ 1780516ms] Error: Hydration failed because the initial UI does not match what was rendered on the server.
+
+Warning: Text content did not match. Server: "starting your guest session…" Client: "20 free questions per hour as a guest"
+
+See more info here: https://nextjs.org/docs/messages/react-hydration-error
+    at throwOnHydrationMismatch (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:12507:9)
+    at tryToClaimNextHydratableInstance (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:12520:7)
+    at updateHostComponent (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:19897:5)
+    at beginWork (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:21613:14)
+    at beginWork$1 (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:27421:14)
+    at performUnitOfWork (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:26552:12)
+    at workLoopSync (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:26461:5)
+    at renderRootSync (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:26429:7)
+    at performConcurrentWorkOnRoot (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:25733:74)
+    at workLoop (webpack-internal:///./node_modules/scheduler/cjs/scheduler.development.js:266:34)
+    at flushWork (webpack-internal:///./node_modules/scheduler/cjs/scheduler.development.js:239:14)
+    at MessagePort.performWorkUntilDeadline (webpack-internal:///./node_modules/scheduler/cjs/scheduler.development.js:533:21)
+[ 1780516ms] Error: Hydration failed because the initial UI does not match what was rendered on the server.
+
+Warning: Text content did not match. Server: "starting your guest session…" Client: "20 free questions per hour as a guest"
+
+See more info here: https://nextjs.org/docs/messages/react-hydration-error
+    at throwOnHydrationMismatch (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:12507:9)
+    at tryToClaimNextHydratableInstance (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:12520:7)
+    at updateHostComponent (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:19897:5)
+    at beginWork (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:21613:14)
+    at beginWork$1 (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:27421:14)
+    at performUnitOfWork (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:26552:12)
+    at workLoopSync (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:26461:5)
+    at renderRootSync (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:26429:7)
+    at performConcurrentWorkOnRoot (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:25733:74)
+    at workLoop (webpack-internal:///./node_modules/scheduler/cjs/scheduler.development.js:266:34)
+    at flushWork (webpack-internal:///./node_modules/scheduler/cjs/scheduler.development.js:239:14)
+    at MessagePort.performWorkUntilDeadline (webpack-internal:///./node_modules/scheduler/cjs/scheduler.development.js:533:21)
+[ 1780516ms] Error: Hydration failed because the initial UI does not match what was rendered on the server.
+
+Warning: Text content did not match. Server: "starting your guest session…" Client: "20 free questions per hour as a guest"
+
+See more info here: https://nextjs.org/docs/messages/react-hydration-error
+    at throwOnHydrationMismatch (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:12507:9)
+    at tryToClaimNextHydratableInstance (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:12520:7)
+    at updateHostComponent (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:19897:5)
+    at beginWork (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:21613:14)
+    at beginWork$1 (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:27421:14)
+    at performUnitOfWork (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:26552:12)
+    at workLoopSync (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:26461:5)
+    at renderRootSync (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:26429:7)
+    at performConcurrentWorkOnRoot (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:25733:74)
+    at workLoop (webpack-internal:///./node_modules/scheduler/cjs/scheduler.development.js:266:34)
+    at flushWork (webpack-internal:///./node_modules/scheduler/cjs/scheduler.development.js:239:14)
+    at MessagePort.performWorkUntilDeadline (webpack-internal:///./node_modules/scheduler/cjs/scheduler.development.js:533:21)
+[ 1780516ms] Error: There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.
+    at updateHostRoot (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:19844:57)
+    at beginWork (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:21610:14)
+    at beginWork$1 (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:27421:14)
+    at performUnitOfWork (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:26552:12)
+    at workLoopSync (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:26461:5)
+    at renderRootSync (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:26429:7)
+    at recoverFromConcurrentError (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:25845:20)
+    at performConcurrentWorkOnRoot (webpack-internal:///./node_modules/react-dom/cjs/react-dom.development.js:25745:22)
+    at workLoop (webpack-internal:///./node_modules/scheduler/cjs/scheduler.development.js:266:34)
+    at flushWork (webpack-internal:///./node_modules/scheduler/cjs/scheduler.development.js:239:14)
+    at MessagePort.performWorkUntilDeadline (webpack-internal:///./node_modules/scheduler/cjs/scheduler.development.js:533:21)
+[ 1780525ms] [LOG] [HMR] connected @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:47
+[ 1780701ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/guest/plans:0
+[ 1780701ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/guest/plans:0
+[ 1783783ms] [LOG] [Fast Refresh] rebuilding @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/hot-dev-client.js:180
+[ 1783903ms] [LOG] [Fast Refresh] done in 120ms @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/hot-dev-client.js:157
+[ 2760131ms] [LOG] [HMR] connected @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:47
+[ 3502609ms] [LOG] [HMR] connected @ webpack-internal:///./node_modules/next/dist/client/dev/error-overlay/websocket.js:47

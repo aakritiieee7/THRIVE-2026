@@ -4,22 +4,22 @@ import {useStoredState} from '../lib/storage'
 import {api,getToken} from '../lib/api'
 
 type Reply={id:number;name:string;body:string}
-type Post={id:number;name:string;location:string;topic:string;title:string;body:string;date:string;likes:number;replies:Reply[];reports:number}
+type Post={id:number;name:string;location:string;topic:string;title:string;body:string;date:string;replies:Reply[];reports:number;localOnly?:boolean}
 
 const starter:Post[]=[
  {id:100,name:'Meena Kumari',location:'Gaya, Bihar',topic:'Multi-grade',title:'A small routine that helped during maths time',
   body:'I write three “when you finish” tasks on the board before we start. While I am with one group, the others know what to pick up next. Picture cards and quick number drawings have worked well for my class.',
-  date:'Community example',likes:4,replies:[{id:1,name:'Ritu S.',body:'The visible next step is helpful. I will try a drawing prompt.'}],reports:0},
+  date:'Community example',replies:[{id:1,name:'Ritu S.',body:'The visible next step is helpful. I will try a drawing prompt.'}],reports:0},
  {id:101,name:'Farah Khan',location:'Patna, Bihar',topic:'Literacy',title:'Paired reading with a picture retell',
   body:'After a short shared reading, I pair learners and ask them to retell one part using a quick drawing. It gives quieter children another way to show what they understood.',
-  date:'Community example',likes:7,replies:[],reports:0}
+  date:'Community example',replies:[],reports:0}
 ]
 
 export default function Community(){
  const [posts,setPosts]=useStoredState<Post[]>('community-posts',starter)
  const [liked,setLiked]=useStoredState<number[]>('community-likes',[])
  const [bookmarks,setBookmarks]=useStoredState<number[]>('community-bookmarks',[])
- const [profile]=useStoredState<any>('profile',{name:'Aarohi Sharma',state:'Bihar'})
+ const [profile]=useStoredState<any>('profile',{name:'',state:'Bihar'})
  const [topic,setTopic]=useState('All'),[query,setQuery]=useState(''),[open,setOpen]=useState(false)
  const [reply,setReply]=useState<Record<number,string>>({}),[report,setReport]=useState('')
  const [form,setForm]=useState({title:'',body:'',topic:'Multi-grade'})
@@ -36,7 +36,7 @@ export default function Community(){
     ])
     if(me)setMeId(me.id)
     if(Array.isArray(serverPosts)&&serverPosts.length){
-     const mapped:Post[]=serverPosts.map(p=>({id:p.id,name:p.author,location:p.location||'',topic:p.topic,title:p.title,body:p.body,date:new Date(p.created_at).toLocaleDateString(),likes:0,replies:(p.replies||[]).map((r:any)=>({id:r.id,name:r.name,body:r.body})),reports:p.reports}))
+     const mapped:Post[]=serverPosts.map(p=>({id:p.id,name:p.author,location:p.location||'',topic:p.topic,title:p.title,body:p.body,date:new Date(p.created_at).toLocaleDateString(),replies:(p.replies||[]).map((r:any)=>({id:r.id,name:r.name,body:r.body})),reports:p.reports}))
      const localIds=new Set(mapped.map(p=>p.id))
      setPosts([...mapped,...posts.filter(p=>!localIds.has(p.id)&&p.id<1000000000000)])
     }
@@ -54,11 +54,11 @@ export default function Community(){
   if(getToken()){
    try{
     const p=await api.post<any>('/api/community/posts',{topic:form.topic,title:form.title.trim(),body:form.body.trim()})
-    setPosts([{id:p.id,name:p.author,location:p.location||'',topic:p.topic,title:p.title,body:p.body,date:'Just now',likes:0,replies:[],reports:0},...posts])
+    setPosts([{id:p.id,name:p.author,location:p.location||'',topic:p.topic,title:p.title,body:p.body,date:'Just now',replies:[],reports:0},...posts])
     setForm({title:'',body:'',topic:'Multi-grade'});setOpen(false);return
    }catch(err:any){setReport(err.message||'Could not publish — sign in and try again.');setTimeout(()=>setReport(''),3000);return}
   }
-  const p:Post={id:Date.now(),name:profile.name||'Teacher',location:profile.state||'',topic:form.topic,title:form.title.trim(),body:form.body.trim(),date:'Just now',likes:0,replies:[],reports:0}
+  const p:Post={id:Date.now(),name:profile.name||'Teacher',location:profile.state||'',topic:form.topic,title:form.title.trim(),body:form.body.trim(),date:'Just now',replies:[],reports:0,localOnly:true}
   setPosts([p,...posts]);setForm({title:'',body:'',topic:'Multi-grade'});setOpen(false)
  }
 
@@ -82,7 +82,7 @@ export default function Community(){
  }
 
  return <Layout title="Teacher community">
-  <div className="page-heading"><div><div className="eyebrow">TEACHER COMMUNITY</div><h1>Good ideas grow when teachers share.</h1><p>Exchange practical classroom experiences. Protect student privacy and keep discussion respectful.</p></div>
+  <div className="page-heading"><div><div className="eyebrow">Teacher community</div><h1>Good ideas grow when teachers share.</h1><p>Exchange practical classroom experiences. Protect student privacy and keep discussion respectful.</p></div>
    <button className="btn btn-primary" onClick={()=>setOpen(true)}>＋ Share a classroom idea</button></div>
   <div className="grid community-grid" style={{alignItems:'start'}}>
    <section className="panel">
@@ -96,8 +96,10 @@ export default function Community(){
       <span className="tag" style={{marginLeft:'auto'}}>{p.topic}</span></div>
      <h3>{p.title}</h3><p>{p.body}</p>
      <div className="post-actions">
-      <button onClick={()=>{setLiked(liked.includes(p.id)?liked.filter(i=>i!==p.id):[...liked,p.id]);setPosts(posts.map(x=>x.id===p.id?{...x,likes:x.likes+(liked.includes(p.id)?-1:1)}:x))}}>{liked.includes(p.id)?'♥':'♡'} {p.likes} helpful</button>
-      <span>◌ {p.replies.length} replies</span>
+      <button onClick={()=>setLiked(liked.includes(p.id)?liked.filter(i=>i!==p.id):[...liked,p.id])}
+        title="Marked helpful on this device only">{liked.includes(p.id)?'♥ Marked helpful':'♡ Helpful'}</button>
+      <span>◌ {p.replies.length} {p.replies.length===1?'reply':'replies'}</span>
+      {p.localOnly&&<span className="tag" style={{fontSize:8.5}}>On this device</span>}
       <button onClick={()=>setBookmarks(bookmarks.includes(p.id)?bookmarks.filter(i=>i!==p.id):[...bookmarks,p.id])}>{bookmarks.includes(p.id)?'★ Saved':'☆ Save'}</button>
       <button onClick={()=>flag(p)}>⚑ Report</button>
      </div>
@@ -126,7 +128,7 @@ export default function Community(){
    <div className="field"><label>Title</label><input maxLength={90} value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="What did you try?"/></div>
    <div className="field"><label>Your experience</label><textarea maxLength={700} value={form.body} onChange={e=>setForm({...form,body:e.target.value})} placeholder="Share the context, what you did and what you noticed…"/></div>
    <div className="notice" style={{marginBottom:12}}>Do not include personal information about students or colleagues.{!getToken()?' You are not signed in — the post will be saved to this device only.':''}</div>
-   <button className="btn btn-primary" disabled={form.title.trim().length<5||form.body.trim().length<12} onClick={create}>Publish to community →</button>
+   <button className="btn btn-primary" disabled={form.title.trim().length<5||form.body.trim().length<12} onClick={create}>Publish to community</button>
   </div></div>}
   {report&&<div className="toast">{report}</div>}
  </Layout>
