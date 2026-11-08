@@ -275,7 +275,7 @@ export default function Compiler() {
           <div className={'field' + (fieldErrors.minutes ? ' invalid' : '')}>
             <label htmlFor="minutes">Available class time</label>
             <input id="minutes" type="number" min={20} max={240} value={minutes}
-              onChange={e => { setMinutes(Number(e.target.value)); setFieldErrors({ ...fieldErrors, minutes: '' }) }}
+              onChange={e => { setMinutes(Number(e.target.value) || 0); setFieldErrors({ ...fieldErrors, minutes: '' }) }}
               aria-invalid={!!fieldErrors.minutes} />
             {fieldErrors.minutes && <span className="hint" style={{ color: 'var(--clay)' }}>{fieldErrors.minutes}</span>}
           </div>

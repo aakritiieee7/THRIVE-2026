@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { getToken } from '../lib/api'
+import { backendUp, getToken } from '../lib/api'
 import { useStoredState } from '../lib/storage'
 import { IconBell, IconChat, IconFolder, IconHome, IconStudio, IconSparkle, IconBook, IconUsers, IconLayers } from './Icons'
 import { ThriveLogo } from './Logo'
@@ -28,9 +28,18 @@ const mobileNav = [
 export default function Layout({ children, title }: { children: React.ReactNode; title?: string }) {
   const router = useRouter()
   const [signedIn, setSignedIn] = useState(false)
+  const [online, setOnline] = useState<boolean | null>(null)
   const [profile] = useStoredState<any>('profile', { name: '', state: 'Bihar' })
 
   useEffect(() => { setSignedIn(!!getToken()) }, [router.pathname])
+
+  // The dot reflects whether the backend is actually reachable — it goes amber
+  // (not a false green) when THRIVE is running from local device storage only.
+  useEffect(() => {
+    let alive = true
+    backendUp().then(up => { if (alive) setOnline(up) })
+    return () => { alive = false }
+  }, [])
 
   const name = (profile.name || '').trim()
   const short = name ? name.split(/\s+/).map((w: string) => w[0]).slice(0, 2).join('').toUpperCase() : 'T'
@@ -55,8 +64,13 @@ export default function Layout({ children, title }: { children: React.ReactNode;
       </nav>
       <div className="sidebar-bottom">
         <div className="offline">
-          <span className="online-dot" />
-          {signedIn ? 'Signed in · work syncs to your account' : 'Your workspace is saved on this device'}
+          <span className="online-dot"
+            style={online === false
+              ? { background: 'var(--honey)' }
+              : online === null ? { background: 'var(--faint)' } : undefined} />
+          {online === false
+            ? 'Backend offline · saving on this device'
+            : signedIn ? 'Signed in · work syncs to your account' : 'Your workspace is saved on this device'}
         </div>
         <Link className="teacher-card" href="/profile">
           <span className="avatar">{short[0]}</span>

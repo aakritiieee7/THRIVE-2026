@@ -3,8 +3,8 @@
 ## Monorepo layout
 
 - `frontend/` — Next.js 13 (pages router) + TypeScript. Custom design system in
-  `styles/globals.css` (DM Sans + Manrope), Tailwind base. Mobile-first with a
-  bottom nav; print styles for lesson plans.
+  `styles/globals.css` (Fraunces serif headings + Manrope body), Tailwind base.
+  Mobile-first with a bottom nav; print styles for lesson plans.
 - `backend/` — FastAPI + SQLAlchemy. JWT auth, compiler API, assistant, plans,
   training progress, bookmarks, community. SQLite by default; Postgres via
   `DATABASE_URL` (docker-compose). Alembic config ships for production migrations.

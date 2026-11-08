@@ -6,7 +6,9 @@
       "Read(//opt/homebrew/bin/**)",
       "Read(//usr/local/bin/**)",
       "Bash(/Users/aakritirajhans/codeforindia/backend/.venv/bin/python --version)",
-      "Bash(/Users/aakritirajhans/codeforindia/backend/.venv/bin/python -c \"import fastapi, uvicorn; print\\('deps ok'\\)\")"
+      "Bash(/Users/aakritirajhans/codeforindia/backend/.venv/bin/python -c \"import fastapi, uvicorn; print\\('deps ok'\\)\")",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(echo \"exit:$?\")"
     ]
   }
 }

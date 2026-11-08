@@ -1,6 +1,8 @@
+import hashlib
+import hmac
 import json
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from pydantic import BaseModel
@@ -10,13 +12,19 @@ from .api_compiler import router as compiler_router
 from .api_auth import router as auth_router
 from .auth import get_current_user
 from .db import get_db, now
-from .models import AssistantMessage, CommunityPost, CommunityReply, LessonPlan, Teacher, TrainingProgress, UpdateBookmark
+from .models import (AssistantMessage, CommunityPost, CommunityReply, LessonPlan,
+                     RemindTask, Teacher, TrainingProgress, UpdateBookmark)
 from .schemas import (AskIn, ChatIn, ChatOut, GuestAskIn, GuestAskOut, GuestPlanOut,
-                      GuestTokenOut, GuestUpgradeIn, LessonPlanIn, LessonPlanOut, PostIn,
-                      PostOut, ProgressIn, ProgressOut, ReplyIn)
+                      GuestTokenOut, GuestUpgradeIn, LessonPlanIn, LessonPlanOut,
+                      LinkCodeOut, LinkStatusOut, PostIn, PostOut, ProgressIn,
+                      ProgressOut, ReminderIn, ReminderOut, ReplyIn)
 from pydantic import ValidationError
 from . import assistant as assistant_engine
 from . import guest as guest_layer
+from . import ratelimit as rl
+from . import whatsapp_links
+from . import whatsapp_actions
+from .assistant import detect_language
 
 router = APIRouter()
 
@@ -88,6 +96,69 @@ def _plan_out(p: LessonPlan) -> LessonPlanOut:
                          created_at=p.created_at)
 
 
+def _build_whatsapp_plan(text: str, profile: Dict[str, Any], language: str,
+                         db: Session, teacher: Teacher,
+                         save: bool = True) -> Optional[Dict[str, Any]]:
+    """Run the real compiler over a WhatsApp `plan:` message.
+
+    Returns None when the message is not a plan request at all (caller offers a
+    hint). On success, when `save` is True, persists a LessonPlan whose payload
+    mirrors scripts/seed_demo.py so Curriculum Studio opens it unchanged, and
+    wraps the compiler's reply into the plan_saved copy. Infeasible requests
+    return the compiler's honest "cannot fit" reply with nothing saved.
+    `preview=True` skips the write entirely.
+    """
+    from . import whatsapp_actions as wa
+
+    context = {'grades': profile.get('grades', ''), 'subjects': profile.get('subjects', '')}
+    req = assistant_engine.extract_plan_request(text, context)
+    if req is None:
+        return None
+
+    built = assistant_engine.build_plan(req, language)
+    if built['compiled'] is None:
+        # infeasible — reply with the engine's reasons, save nothing
+        reply = built['reply']
+        if save:
+            reply += ('\n\n(Nothing was saved — the schedule could not be built.)'
+                      if not language.lower().startswith('hi')
+                      else '\n\n(कुछ सहज नह गय — समय-सारणी बन न सकी।)')
+        return {'reply': reply, 'saved_id': None, 'wrote': False}
+
+    compiled = built['compiled']
+    inputs = built['inputs']
+    title = f"{inputs['subject']}: " + ' & '.join(
+        f"Grade {g}" for g in inputs['grades'])
+    payload = {
+        'title': title,
+        'grades': [{'grade': g, 'topic': inputs['topics'].get(g, ''),
+                    'objective': ''} for g in inputs['grades']],
+        'minutes': inputs['minutes'],
+        'subject': inputs['subject'],
+        'medium': '',
+        'board': '',
+        'materials': '',
+        'buffer': 0,
+        'schedule': compiled['slots'],
+        'assessments': compiled['assessments'],
+        'sources': compiled.get('sources', []),
+        'savedAt': now(),
+    }
+    plan_id: Optional[int] = None
+    if save:
+        plan = LessonPlan(teacher_id=teacher.id, title=title[:255],
+                          subject=inputs['subject'], medium='', board='',
+                          minutes=inputs['minutes'], payload=payload, created_at=now())
+        db.add(plan)
+        db.commit()
+        db.refresh(plan)
+        plan_id = plan.id
+
+    reply = wa.copy('plan_saved' if save else 'plan_preview', language,
+                    id=plan_id or 0, reply=built['reply'])
+    return {'reply': reply, 'saved_id': plan_id, 'wrote': bool(save and plan_id)}
+
+
 @router.post('/plans', response_model=LessonPlanOut)
 def create_plan(
     req: LessonPlanIn,
@@ -138,6 +209,59 @@ def delete_plan(plan_id: int, teacher: Teacher = Depends(get_current_user), db: 
 
 
 # ---------------------------------------------------------------------------
+# Reminders (Pillar 4 / "done" on WhatsApp): plain helpers so the WhatsApp
+# command router and the web profile panel share the exact same writes.
+# ---------------------------------------------------------------------------
+
+def save_reminder(text: str, remind_at: str, teacher: Teacher,
+                  db: Session) -> RemindTask:
+    """Persist a reminder (called by the web and the WhatsApp `remind:` command)."""
+    task = RemindTask(teacher_id=teacher.id, text=text[:200],
+                      remind_at=remind_at[:32], done=0, created_at=now())
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+    return task
+
+
+def _reminder_out(t: RemindTask) -> ReminderOut:
+    return ReminderOut(id=t.id, text=t.text, remind_at=t.remind_at,
+                       done=bool(t.done), created_at=t.created_at)
+
+
+def toggle_reminder(task_id: int, teacher: Teacher, db: Session) -> Optional[RemindTask]:
+    """Mark a reminder done (idempotent). 404 + ownership, same as delete_plan."""
+    task = db.get(RemindTask, task_id)
+    if task is None or task.teacher_id != teacher.id:
+        raise HTTPException(status_code=404, detail='Reminder not found')
+    if not task.done:
+        task.done = 1
+        db.commit()
+        db.refresh(task)
+    return task
+
+
+@router.get('/reminders', response_model=list[ReminderOut])
+def list_reminders(teacher: Teacher = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Pending reminders first, then recently done ones (newest first)."""
+    rows = db.query(RemindTask).filter(RemindTask.teacher_id == teacher.id)\
+             .order_by(RemindTask.done.asc(), RemindTask.id.desc()).all()
+    return [_reminder_out(t) for t in rows]
+
+
+@router.post('/reminders', response_model=ReminderOut)
+def create_reminder(req: ReminderIn, teacher: Teacher = Depends(get_current_user),
+                    db: Session = Depends(get_db)):
+    return _reminder_out(save_reminder(req.text, req.remind_at, teacher, db))
+
+
+@router.put('/reminders/{task_id}/done', response_model=ReminderOut)
+def mark_reminder_done(task_id: int, teacher: Teacher = Depends(get_current_user),
+                       db: Session = Depends(get_db)):
+    return _reminder_out(toggle_reminder(task_id, teacher, db))
+
+
+# ---------------------------------------------------------------------------
 # Training progress (Pillar 3)
 # ---------------------------------------------------------------------------
 
@@ -168,6 +292,27 @@ def set_progress(
     db.commit()
     db.refresh(row)
     return ProgressOut(course_id=row.course_id, lessons_done=row.lessons_done, updated_at=row.updated_at)
+
+
+def set_progress_direct(course_id: str, lessons_done: int, teacher: Teacher,
+                        db: Session) -> ProgressOut:
+    """The same upsert set_progress performs, callable from the WhatsApp
+    command router (the course id is already validated against COURSES)."""
+    row = db.query(TrainingProgress).filter(
+        TrainingProgress.teacher_id == teacher.id,
+        TrainingProgress.course_id == course_id,
+    ).first()
+    if row is None:
+        row = TrainingProgress(teacher_id=teacher.id, course_id=course_id,
+                               lessons_done=lessons_done, updated_at=now())
+        db.add(row)
+    else:
+        row.lessons_done = lessons_done
+        row.updated_at = now()
+    db.commit()
+    db.refresh(row)
+    return ProgressOut(course_id=row.course_id, lessons_done=row.lessons_done,
+                       updated_at=row.updated_at)
 
 
 # ---------------------------------------------------------------------------
@@ -237,6 +382,32 @@ def create_post(
     db.commit()
     db.refresh(post)
     return _post_out(post)
+
+
+def save_post(title: str, body: str, teacher: Teacher,
+              db: Session) -> Dict[str, Any]:
+    """Publish a community post from the WhatsApp `post:` command.
+
+    Applies the exact PostIn rules (title 5–160, body 12–4000) and reports the
+    specific failure with a 422 whose detail names the field, so the command
+    router can ask the teacher to add a title or a fuller body.
+    """
+    title = (title or '').strip()
+    body = (body or '').strip()
+    if len(title) < 5:
+        raise HTTPException(status_code=422, detail='title too short')
+    if len(title) > 160:
+        raise HTTPException(status_code=422, detail='title too long')
+    if len(body) < 12:
+        raise HTTPException(status_code=422, detail='body too short')
+    if len(body) > 4000:
+        raise HTTPException(status_code=422, detail='body too long')
+    post = CommunityPost(teacher_id=teacher.id, topic='Multi-grade', title=title,
+                         body=body, reports=0, created_at=now())
+    db.add(post)
+    db.commit()
+    db.refresh(post)
+    return {'id': post.id, 'title': post.title}
 
 
 @router.post('/community/posts/{post_id}/replies', response_model=PostOut)
@@ -395,7 +566,9 @@ def req_token(header: str, cookie: str) -> str:
 # ---------------------------------------------------------------------------
 
 @router.post('/assistant/ask', response_model=ChatOut)
-def ask(req: AskIn):
+def ask(req: AskIn, request: Request):
+    ip = request.client.host if request.client else 'unknown'
+    rl.allow('ask:' + ip, rl.ASK_PER_HOUR, 'assistant asks')
     context = {'state': req.state, 'grades': req.grades, 'subjects': req.subjects}
     context = {k: v for k, v in context.items() if v}
     result = assistant_engine.respond(req.message, context, req.language)
@@ -406,7 +579,7 @@ def ask(req: AskIn):
 
 
 @router.post('/assistant/bridge')
-def bridge(payload: Dict[str, Any]):
+def bridge(payload: Dict[str, Any], request: Request):
     """Channel-agnostic message bridge.
 
     Body: {channel: 'whatsapp'|'webchat', from: '<phone or session id>',
@@ -416,12 +589,14 @@ def bridge(payload: Dict[str, Any]):
     No real provider credentials are required — the WhatsApp webhook adapter
     calls this same function once Meta credentials are configured.
     """
+    ip = request.client.host if request.client else 'unknown'
+    rl.allow('bridge:' + ip, rl.ASK_PER_HOUR, 'assistant asks')
     channel = str(payload.get('channel') or 'webchat')[:32]
     sender = str(payload.get('from') or 'anonymous')[:64]
     message = str(payload.get('message') or '').strip()
     if not message:
         raise HTTPException(status_code=422, detail='message is required')
-    language = str(payload.get('language') or 'English')
+    language = str(payload.get('language') or '').strip() or detect_language(message)
     context = payload.get('profile') if isinstance(payload.get('profile'), dict) else {}
     result = assistant_engine.respond(message, context, language)
     return {'channel': channel, 'from': sender, **result}
@@ -448,11 +623,56 @@ import urllib.request
 _VERIFY_TOKEN = os.environ.get('WHATSAPP_VERIFY_TOKEN', 'thrive-verify').strip()
 _ACCESS_TOKEN = os.environ.get('WHATSAPP_TOKEN', '').strip()
 _PHONE_ID = os.environ.get('WHATSAPP_PHONE_ID', '').strip()
+_APP_SECRET = os.environ.get('WHATSAPP_APP_SECRET', '').strip()
+_DISPLAY_NUMBER = os.environ.get('WHATSAPP_DISPLAY_NUMBER', '').strip()
 _WA_GRAPH = 'https://graph.facebook.com/v19.0'
+# Link codes are a credential-adjacent write; cap attempts per number per hour.
+LINK_PER_HOUR = 5
 
 
-def _extract_wa_message(payload: Dict[str, Any]) -> Dict[str, str]:
-    """Pull {from, text, language} out of a Meta webhook envelope."""
+def _check_wa_signature(raw: bytes, signature_header: str) -> bool:
+    """Verify Meta's X-Hub-Signature-256 when an app secret is configured.
+
+    ``signature_header`` is ``sha256=<hexdigest>``. Uses constant-time compare.
+    Returns True when no secret is set (unsigned dev/simulation/tests) or the
+    signature matches.
+    """
+    if not _APP_SECRET:
+        return True
+    if not signature_header or not signature_header.startswith('sha256='):
+        return False
+    expected = hmac.new(_APP_SECRET.encode('utf-8'), raw, hashlib.sha256).hexdigest()
+    given = signature_header.split('sha256=', 1)[1].strip()
+    return hmac.compare_digest(expected, given)
+
+
+def _extract_wa_status(payload: Dict[str, Any]) -> Dict[str, str]:
+    """Pull the first delivery status callback out of a Meta webhook envelope.
+
+    Meta posts delivery receipts as a ``statuses`` array rather than ``messages``.
+    Returns {message_id, to, status, error} — status is one of sent, delivered,
+    read, failed (or a raw code) — and an empty dict when there is none.
+    """
+    try:
+        entry = payload['entry'][0]
+        change = entry['changes'][0]['value']
+        st = change['statuses'][0]
+        status = str(st.get('status') or '')
+        err = (st.get('errors') or [{}])[0]
+        return {'message_id': str(st.get('id') or ''), 'to': str(st.get('to') or ''),
+                'status': status, 'error': str(err.get('message') or '')}
+    except (KeyError, IndexError, TypeError):
+        return {}
+
+
+def _extract_wa_message(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Pull {from, text, language, display_name} out of a Meta webhook envelope.
+
+    Language is honoured when the caller states it (e.g. a test harness or a
+    client that pins it); otherwise we infer it from the message text itself —
+    Devanagari means Hindi — so a teacher simply typing in their own language
+    gets a reply in that language.
+    """
     try:
         entry = payload['entry'][0]
         change = entry['changes'][0]['value']
@@ -464,10 +684,13 @@ def _extract_wa_message(payload: Dict[str, Any]) -> Dict[str, str]:
             or (msg.get('interactive') or {}).get('button_reply', {}).get('title') \
             or (msg.get('interactive') or {}).get('list_reply', {}).get('title') \
             or ''
-        lang = (msg.get('text') or {}).get('body') and payload.get('language') or 'English'
-        return {'from': sender, 'text': str(text).strip(), 'language': lang}
+        text = str(text).strip()
+        explicit = str(payload.get('language') or '').strip()
+        lang = explicit if explicit else detect_language(text)
+        display_name = str((msg.get('profile') or {}).get('name') or '').strip()
+        return {'from': sender, 'text': text, 'language': lang, 'display_name': display_name}
     except (KeyError, IndexError, TypeError):
-        return {'from': '', 'text': '', 'language': 'English'}
+        return {'from': '', 'text': '', 'language': 'English', 'display_name': ''}
 
 
 def _send_wa_text(to: str, body: str) -> bool:
@@ -490,28 +713,72 @@ def _send_wa_text(to: str, body: str) -> bool:
         return False
 
 
+# ---------------------------------------------------------------------------
+# WhatsApp account linking — a signed-in teacher mints a one-time code on the
+# web and texts it to the bot; the webhook redeems it. Unlink is web-only.
+# ---------------------------------------------------------------------------
+
+@router.post('/assistant/whatsapp/link-code', response_model=LinkCodeOut)
+def whatsapp_link_code(teacher: Teacher = Depends(get_current_user),
+                       db: Session = Depends(get_db)):
+    """Mint a fresh one-time link code (older unused codes for this teacher are
+    dropped). The plain code is returned once; only its hash is stored."""
+    issued = whatsapp_links.issue_code(teacher, db)
+    return LinkCodeOut(code=issued['code'], expires_in=issued['expires_in'],
+                       wa_number=_DISPLAY_NUMBER)
+
+
+@router.get('/assistant/whatsapp/link', response_model=LinkStatusOut)
+def whatsapp_link_status(teacher: Teacher = Depends(get_current_user),
+                         db: Session = Depends(get_db)):
+    """Whether this account is bound to a WhatsApp number (masked, never full)."""
+    link = whatsapp_links.get_link(teacher.id, db)
+    if link is None:
+        return LinkStatusOut(linked=False)
+    return LinkStatusOut(linked=True, phone_masked=whatsapp_links.phone_masked(link.phone),
+                         linked_at=link.linked_at)
+
+
+@router.delete('/assistant/whatsapp/link')
+def whatsapp_unlink(teacher: Teacher = Depends(get_current_user),
+                    db: Session = Depends(get_db)):
+    """Unbind this account's number. Deliberately web-only — a stolen or shared
+    phone must not be able to detach the real teacher's account."""
+    removed = whatsapp_links.remove_link(teacher.id, db)
+    return {'status': 'unlinked' if removed else 'not-linked'}
+
+
 @router.get('/assistant/whatsapp/status')
-def whatsapp_status() -> Dict[str, Any]:
+def whatsapp_status(db: Session = Depends(get_db)) -> Dict[str, Any]:
     """Honest integration status for the UI and tests.
 
     Never claims live delivery without credentials: `live` is true only when
-    both WHATSAPP_TOKEN and WHATSAPP_PHONE_ID are configured.
+    both WHATSAPP_TOKEN and WHATSAPP_PHONE_ID are configured. `signing` reports
+    whether webhook bodies are HMAC-verified (required before go-live).
     """
     configured = bool(_ACCESS_TOKEN and _PHONE_ID)
+    signing = bool(_APP_SECRET)
+    linked_senders = db.query(whatsapp_links.WhatsAppLink).count()
+    note = ('Live Meta Cloud API sends are enabled. Inbound webhook replies are '
+            "generated by THRIVE's assistant and delivered by Meta."
+            if configured else
+            'No WhatsApp credentials configured (WHATSAPP_TOKEN / WHATSAPP_PHONE_ID). '
+            'The webhook and chatbot run in local simulation: replies are generated '
+            'and returned to the caller, but nothing is sent to a real phone. '
+            'See README to connect a Meta number.')
+    if not signing:
+        note += (' Webhook signature checking is OFF — set WHATSAPP_APP_SECRET '
+                 'before going live.')
     return {
         'configured': configured,
         'live': configured,
         'channel': 'whatsapp',
         'webhook_path': '/assistant/whatsapp',
         'verify_token_set': bool(_VERIFY_TOKEN),
+        'signing': signing,
+        'linked_senders': linked_senders,
         'mode': 'live-send' if configured else 'simulation',
-        'note': ('Live Meta Cloud API sends are enabled. Inbound webhook replies are '
-                 "generated by THRIVE's assistant and delivered by Meta."
-                 if configured else
-                 'No WhatsApp credentials configured (WHATSAPP_TOKEN / WHATSAPP_PHONE_ID). '
-                 'The webhook and chatbot run in local simulation: replies are generated '
-                 'and returned to the caller, but nothing is sent to a real phone. '
-                 'See README to connect a Meta number.'),
+        'note': note,
     }
 
 
@@ -531,23 +798,65 @@ def whatsapp_verify(
 
 
 @router.post('/assistant/whatsapp')
-def whatsapp_webhook(payload: Dict[str, Any]):
-    """Inbound WhatsApp message → grounded reply.
+async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
+    """Inbound WhatsApp message → grounded reply / account action; receipts → ack.
 
-    The reply is both returned in the response (useful for tests and for Meta's
-    webhook ACK) and pushed outbound when credentials are configured.
+    Meta posts two shapes here. An inbound teacher message (``messages``) is
+    routed through ``whatsapp_actions.handle`` — free text to the grounded
+    assistant, and (for a number bound to an account) plan/post/progress/
+    remind commands that write to that account. The reply is returned in the
+    response (for tests and Meta's webhook ACK) and pushed outbound when
+    credentials are configured. A delivery receipt (``statuses``) is
+    acknowledged with what it reports, never answered.
+
+    When ``WHATSAPP_APP_SECRET`` is set, the body must carry a valid
+    ``X-Hub-Signature-256`` or the call is refused (403).
     """
+    raw = await request.body()
+    if not _check_wa_signature(raw, request.headers.get('x-hub-signature-256', '')):
+        raise HTTPException(status_code=403, detail='invalid webhook signature')
+    try:
+        payload = json.loads(raw.decode('utf-8') or '{}')
+    except (ValueError, UnicodeDecodeError):
+        raise HTTPException(status_code=400, detail='invalid JSON body')
+
+    status = _extract_wa_status(payload)
+    if status:
+        return {'channel': 'whatsapp', 'kind': 'status', 'acknowledged': True, **status}
+
     inbound = _extract_wa_message(payload)
     if not inbound['text']:
-        # Meta sends status callbacks too — acknowledge without answering.
+        # Some other change type (user profile, etc.) — acknowledge silently.
         return {'status': 'ignored', 'reason': 'no inbound text message'}
-    context = payload.get('profile') if isinstance(payload.get('profile'), dict) else {}
-    result = assistant_engine.respond(inbound['text'], context, inbound['language'])
+
+    # Rate limit. A 429 must reach the teacher as a *sent* bilingual message
+    # (Meta's ACK can't carry a body), so we convert the exception here.
+    if inbound['from']:
+        try:
+            rl.allow('wa:' + inbound['from'], rl.WHATSAPP_PER_HOUR, 'WhatsApp messages')
+        except HTTPException as e:
+            en, hi = str(e.detail), whatsapp_actions.RATE_HI
+            body = en + '\n\n' + hi
+            _send_wa_text(inbound['from'], body)
+            return {'channel': 'whatsapp', 'kind': 'message', 'from': inbound['from'],
+                    'throttled': True, 'delivered': bool(_ACCESS_TOKEN), 'reply': body,
+                    'sources': [], 'mode': 'rate-limit'}
+
+    # Resolve the account bound to this phone, if any (unlinked → guest, no writes).
+    teacher = whatsapp_links.resolve_teacher(inbound['from'], db)
+    result = whatsapp_actions.handle(inbound['text'], teacher, inbound['language'], db,
+                                     phone=inbound['from'])
     if inbound['from']:
         _send_wa_text(inbound['from'], result['reply'])
     return {
         'channel': 'whatsapp',
+        'kind': 'message',
         'from': inbound['from'],
+        'linked': result['linked'],
+        'action': result['action'],
+        'saved_id': result['saved_id'],
         'delivered': bool(_ACCESS_TOKEN),
-        **result,
+        'reply': result['reply'],
+        'sources': result['sources'],
+        'mode': result['mode'],
     }

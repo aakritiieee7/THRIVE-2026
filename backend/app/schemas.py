@@ -134,3 +134,32 @@ class ChatOut(BaseModel):
 class GuestAskOut(ChatOut):
     """Guest ask reply — includes the remaining anonymous quota."""
     asks_remaining: int = 0
+
+
+class LinkCodeOut(BaseModel):
+    """One-time code a signed-in teacher shows on the web, then texts to the
+    bot from their own WhatsApp number. Returned once, stored only as a hash."""
+    code: str
+    expires_in: int
+    wa_number: str = ''   # the bot's number, when WHATSAPP_DISPLAY_NUMBER is set
+
+
+class LinkStatusOut(BaseModel):
+    """Whether this account is bound to a WhatsApp number (masked)."""
+    linked: bool
+    phone_masked: str = ''
+    linked_at: str = ''
+
+
+class ReminderIn(BaseModel):
+    """A reminder added from the web (same rules as the WhatsApp `remind:`)."""
+    text: str = Field(min_length=2, max_length=200)
+    remind_at: str = Field(default='today', min_length=1, max_length=32)
+
+
+class ReminderOut(BaseModel):
+    id: int
+    text: str
+    remind_at: str
+    done: bool
+    created_at: str

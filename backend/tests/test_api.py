@@ -302,3 +302,48 @@ def test_whatsapp_status_is_honest(client):
     assert body['live'] is False
     assert body['mode'] == 'simulation'
     assert 'WHATSAPP_TOKEN' in body['note']
+
+
+def test_open_assistant_endpoints_rate_limited(client):
+    from app import ratelimit as rl
+    rl.reset_state()
+    rl.ASK_PER_HOUR = 2  # drop the window for the test
+    try:
+        assert client.post('/assistant/ask', json={'message': 'quick check'}).status_code == 200
+        assert client.post('/assistant/ask', json={'message': 'quick check'}).status_code == 200
+        # third ask from the same connection is throttled
+        third = client.post('/assistant/ask', json={'message': 'again'})
+        assert third.status_code == 429
+        assert 'wait' in third.json()['detail'].lower()
+        # the bridge is rate-limited on its own key and is unaffected
+        assert client.post('/assistant/bridge', json={'channel': 'webchat', 'from': 'w1', 'message': 'quick check'}).status_code == 200
+    finally:
+        rl.reset_state()
+        rl.ASK_PER_HOUR = 30
+
+
+def test_whatsapp_inbound_hindi_auto_language(client):
+    from app import ratelimit as rl
+    rl.reset_state()
+    # A teacher types in Hindi; the webhook infers Hindi and replies in Devanagari.
+    r = client.post('/assistant/whatsapp', json={'entry': [{'changes': [{'value': {
+        'messages': [{'from': '+915550001111',
+                      'text': {'body': 'मुझको गणित पढ़ाना है'}}]}}]}]})
+    assert r.status_code == 200
+    body = r.json()
+    assert body['kind'] == 'message'
+    assert sum(1 for ch in body['reply'] if 'ऀ' <= ch <= 'ॿ') > 20
+
+
+def test_whatsapp_delivery_status_acknowledged_not_answered(client):
+    from app import ratelimit as rl
+    rl.reset_state()
+    r = client.post('/assistant/whatsapp', json={'entry': [{'changes': [{'value': {
+        'statuses': [{'id': 'wamid.abc', 'to': '+915550001111', 'status': 'delivered'}]}}]}]})
+    assert r.status_code == 200
+    body = r.json()
+    assert body['kind'] == 'status'
+    assert body['acknowledged'] is True
+    assert body['status'] == 'delivered'
+    assert body['message_id'] == 'wamid.abc'
+    assert 'reply' not in body  # a receipt must not spawn an assistant reply

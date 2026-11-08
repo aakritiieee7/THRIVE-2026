@@ -117,14 +117,14 @@ export default function Chat(){
    <aside className="wa-card">
     <div className="wa-head">
      <span className="wa-logo">✆</span>
-     <div><b style={{fontFamily:"'Fraunces'",fontSize:14}}>THRIVE on chat</b><small style={{display:'block',color:'var(--muted)',fontSize:10.5}}>Web chat now · WhatsApp bot next</small></div>
+     <div><b style={{fontFamily:"'Fraunces'",fontSize:14}}>THRIVE on chat</b><small style={{display:'block',color:'var(--muted)',fontSize:10.5}}>One assistant, WhatsApp-style thread</small></div>
     </div>
     <div className="channel-row"><span className="channel-dot" style={{background:'var(--forest)'}}/><span><b>Web chat</b><small>Live — this thread, works signed in or out</small></span></div>
     <div className="channel-row"><span className="channel-dot" style={{background:'var(--honey)'}}/><span><b>Voice notes</b><small>{!mounted?'Voice input':speechSupported()?'Tap the mic below and speak':'Not available in this browser — use Chrome or Edge'}</small></span></div>
     <div className="channel-row"><span className="channel-dot" style={{background:waStatus?.live?'var(--forest)':'var(--muted)'}}/>
      <span><b>WhatsApp bot</b><small>{waStatus? (waStatus.live
-      ? 'Live — Meta credentials configured, outbound sends enabled'
-      : 'Local simulation — webhook + chatbot built; add WHATSAPP_TOKEN/WHATSAPP_PHONE_ID to send real messages (see README)')
+      ? 'Live — Meta credentials configured, sending to real phones'
+      : 'Ready in local simulation — full chatbot + webhook built; connect a Meta number to reach real phones')
       : 'Checking integration status…'}</small></span></div>
     <div className="divider"/>
     <b style={{fontFamily:"'Fraunces'",fontSize:13}}>Try asking</b>

@@ -60,73 +60,145 @@ def retrieve(query: str, k: int = 3, min_score: int = 1) -> List[Dict[str, Any]]
     return [item for _, item in scored[:k]]
 
 
-_FALLBACK_RULES: List[Tuple[str, str]] = [
-    (r'multi.?grade|multiple grade|mixed grade|अलग-अलग कक्षा',
+_FALLBACK_RULES: List[Tuple[str, str, str]] = [
+    (r'multi.?grade|multiple grade|mixed grade|अलग-अलग कक्षा|एक कक्षा में',
      'Multi-grade rhythm: open with a 5-minute whole-group question, then run short '
      'teacher-led turns grade by grade. While you are with one grade, the others follow '
      'a visible "when you finish" task written on the board. Close with one quick check '
-     'per grade. Share instruction only when the learning goal is genuinely common.'),
-    (r'read|literacy|language|reading|पढ़ने|साक्षरता',
+     'per grade. Share instruction only when the learning goal is genuinely common.',
+     'एक कक्षा में कई कक्षाएँ: 5 मिनट की समूह-चर्चा से शुरुआत करें, फिर कक्षा-दर-कक्षा '
+     'छोटी-छोटी शिक्षक-लियाएँ हर चक्कर करें। जब आप एक कक्षा के साथ हों, बाकी कक्षाएँ '
+     'बोर्ड पर लिखा "ख़त्म होते ही करें" कार्य करें। अंत में हर कक्षा के लिए एक जल्दी '
+     'जाँच करें। सिर्फ़ तभी सामूहिक शिक्षा दें जब शिख्ण लक्ष्य वाक़ई सामान्य हो।'),
+    (r'read|literacy|language|reading|पढ़|पठन|सक्षरता|भाषा',
      'Reading routine: read a short familiar passage aloud once, read again with paired '
      'reading, then ask one literal and one inferential question. Learners who need '
      'support can match picture and word cards; those ready for more can propose a new '
-     'title and justify it.'),
-    (r'math|number|fraction|shape|गणित|संख्या',
+     'title and justify it.',
+     'हिंदी में पठन क्रम: एक छोटी परिचित खंड आवाज़ में एक बार पढ़ाएँ, फिर जोड़ी-पढ़न से '
+     'दोबारा पढ़ाएँ, फिर एक सीधा और एक अनुमान पर आधारित प्रश्न पूछें। जिन विद्यार्थियों को '
+     'सहायता चाहिए उन्हें चित्र-शब्द कार्ड मिलाएँ; जो और के लिए तैयार हैं वे नया शीर्षक '
+     'सुझाएँ और उसकी व्याख्या करें।'),
+    (r'math|number|fraction|shape|गणित|संख्या|भगण',
      'Make it visible: model one example with locally available objects (sticks, seeds, '
      'paper). Ask learners to show thinking with objects, a drawing or a number sentence. '
      'Partners compare methods, then a short independent check. Keep the shared example; '
-     'vary the follow-up question by grade.'),
-    (r'assess|worksheet|check|question|मूल्यांकन|प्रश्न',
+     'vary the follow-up question by grade.',
+     'इसे दिखाना सिखाएँ: पास की सामग्री (डंडे, बीज, कागज़) से एक उदाहरण दिखाएँ। विद्यार्थियों '
+     'से वस्तुओं, चित्र या संख्या-वाक्य से सोच दिखाने को कहें। साथी अपनी विधियों की तुलना '
+     'करें, फिर एक छोटी स्वतंत्र जाँच करें। सामूहिक उदाहरण रखें; कक्षा के अनुसार '
+     'अनुवर्ती प्रश्न बदलें।'),
+    (r'assess|worksheet|check|question|मूल्यांकन|परीक्षण|जाँच|प्रश्न',
      'Quick learning check: one example to show, one explanation of the method, one '
      'slightly different example to try. Use a separate prompt for each grade so the '
      'check matches that grade’s goal, and note who manages independently, with a '
-     'hint, or needs another model.'),
-    (r'manage|attention|behavio|disrupt|discipline|शांति',
+     'hint, or needs another model.',
+     'त्वरित अधिगम-जाँच: एक उदाहरण दिखाएँ, विधि की एक व्याख्या करें, और आज़माने के लिए '
+     'एक थोड़ा अलग उदाहरण दें। हर कक्षा के लिए अलग प्रॉम्प्ट दें ताकि जाँच उसी कक्षा के '
+     'लक्ष्य से मेल खाए, और नोट करें कि कौन स्वतंत्र रूप से, कौन संकेत के साथ, और कौन '
+     'दूसरी व्याख्या से आगे बढ़ रहा है।'),
+    (r'manage|attention|behavio|disrupt|discipline|शांति|व्यवस्थ',
      'Reset routine: pause, give one short concrete direction, and make the first step '
      'visible on the board. Proximity or a choice between two appropriate tasks can help '
-     'a learner rejoin. Follow your school’s safeguarding procedures if a concern persists.'),
+     'a learner rejoin. Follow your school’s safeguarding procedures if a concern persists.',
+     'पुनःस्थापन क्रम: थमाएँ, एक छोटी-सी स्पष्ट दिशा दें, और पहला कदम बोर्ड पर दिखाएँ। '
+     'निकटता या दो उचित कार्यों में से विकल्प किसी विद्यार्थी को फिर से जुड़ने में मदद '
+     'कर सकता है। यदि चिंता बना रहती है, तो अपने विद्यालय की संरक्षण प्रक्रियाओं का '
+     'पालन करें।'),
     (r'activit|game|play|गतिविधि',
      'Low-cost activity: pick one concept, choose two safe local materials, give one clear '
      'instruction, and let pairs produce a result you can check quickly. Rotate one shared '
-     'material between grades if it must be conserved.'),
+     'material between grades if it must be conserved.',
+     'कम-लागत गतिविधि: एक अवधारणा चुनें, दो सुरक्षित स्थानीय सामग्री चुनें, एक स्पष्ट '
+     'निर्देश दें, और जोड़ों को वह परिणाम बनाने दें जिसकी आप जल्दी जाँच कर सकें। यदि '
+     'सामग्री बचावनी हो तो कक्षाओं के बीच एक सामूहिक सामग्री घुमाएँ।'),
 ]
 
-
-def _local_reply(query: str, context: Dict[str, Any], language: str) -> Tuple[str, List[Dict[str, Any]]]:
-    hits = retrieve(query)
-    rules = [body for pattern, body in _FALLBACK_RULES if re.search(pattern, query, re.I)]
-
-    parts: List[str] = []
-    if rules:
-        parts.append(rules[0])
-    elif hits:
-        parts.append(hits[0].get('text', ''))
-    else:
-        parts.append(
+# Language-neutral boilerplate for the offline path, in both reply languages.
+_LOCAL_STRINGS = {
+    'en': {
+        'no_source': (
             'I do not have a verified source in THRIVE’s current curriculum corpus for that '
             'question. Describe the grade, subject and topic, and I will help structure a '
             'practical next step you can review against your official syllabus.'
-        )
+        ),
+        'context': 'Using your teaching context: {ctx}.',
+        'adapt': 'Adapt this to your learners and confirm curriculum points against your current syllabus.',
+        'no_source_title': 'THRIVE local teaching guidance',
+        'why_matched': 'matched your question',
+        'why_fallback': 'pattern-based fallback, not an official curriculum source',
+    },
+    'hi': {
+        'no_source': (
+            'THRIVE की वर्तमान पाठ्यक्रम-सामग्री में इस प्रश्न का सत्यापित स्रोत मेरे पास नहीं '
+            'है। कक्षा, विषय और विषय-वस्तु बताएँ, और मैं आपकी आधिकारिक पाठ्यचर्या से मिलाप '
+            'कर सकने वाला एक व्यावहारिक अगला कदम तैयार करने में मदद करूँगा।'
+        ),
+        'context': 'आपकी शिक्षण-परिस्थिति का उपयोग: {ctx}.',
+        'adapt': 'अपने विद्यार्थियों के अनुसार इसे अनुकूलित करें और पाठ्यक्रम बिंदुओं की पुष्टि '
+                 'अपनी वर्तमान पाठ्यचर्या से करें।',
+        'no_source_title': 'THRIVE स्थानीय शिक्षण-संकेत',
+        'why_matched': 'आपके प्रश्न से मिला',
+        'why_fallback': 'प्रारूप-आधारित मार्गदर्शन, आधिकारिक पाठ्यक्रम स्रोत नहीं',
+    },
+}
 
-    ctx_bits = [context.get('state'), context.get('board'),
-                ('Grades ' + str(context.get('grades'))) if context.get('grades') else None,
+
+def detect_language(text: str) -> str:
+    """Infer the reply language from a message when the caller didn't state one.
+
+    Devanagari anywhere in the text means the teacher wrote in Hindi; otherwise
+    we default to English. Used by the WhatsApp and web bridges so a teacher can
+    simply type in their language without a selector.
+    """
+    if text and any('ऀ' <= ch <= 'ॿ' for ch in text):
+        return 'Hindi'
+    return 'English'
+
+
+def _lang_key(language: str) -> str:
+    return 'hi' if language.lower().startswith('hi') else 'en'
+
+
+def _local_reply(query: str, context: Dict[str, Any], language: str) -> Tuple[str, List[Dict[str, Any]]]:
+    lang = _lang_key(language)
+    s = _LOCAL_STRINGS[lang]
+    hits = retrieve(query)
+
+    rule_body = None
+    for pattern, en_body, hi_body in _FALLBACK_RULES:
+        if re.search(pattern, query, re.I):
+            rule_body = en_body if lang == 'en' else hi_body
+            break
+
+    parts: List[str] = []
+    if rule_body:
+        parts.append(rule_body)
+    elif hits:
+        parts.append(hits[0].get('text', ''))
+    else:
+        parts.append(s['no_source'])
+
+    grades = context.get('grades')
+    grade_bit = ('कक्षा ' + str(grades)) if grades and lang == 'hi' else (
+        ('Grades ' + str(grades)) if grades else None)
+    ctx_bits = [context.get('state'), context.get('board'), grade_bit,
                 context.get('subjects'), context.get('medium')]
     ctx_line = ' · '.join(str(b) for b in ctx_bits if b)
     if ctx_line:
-        parts.append(f'Using your teaching context: {ctx_line}.')
-    parts.append('Adapt this to your learners and confirm curriculum points against your current syllabus.')
+        parts.append(s['context'].format(ctx=ctx_line))
+    parts.append(s['adapt'])
 
     reply = '\n\n'.join(parts)
-    if language.lower().startswith('hi'):
-        reply = ('(हिंदी संस्करण — नीचे मार्गदर्शन अंग्रेज़ी में है; हिंदी पूर्ण सहायता आगामी अपडेट में आएगी।)\n\n' + reply)
 
     sources = [
-        {'title': h.get('title'), 'org': h.get('org'), 'url': h.get('url'), 'why': 'matched your question'}
+        {'title': h.get('title'), 'org': h.get('org'), 'url': h.get('url'), 'why': s['why_matched']}
         for h in hits
     ]
     if not sources:
-        sources = [{'title': 'THRIVE local teaching guidance', 'org': 'THRIVE', 'url': '', 'why': 'pattern-based fallback, not an official curriculum source'}]
+        sources = [{'title': s['no_source_title'], 'org': 'THRIVE', 'url': '', 'why': s['why_fallback']}]
     return reply, sources
+
 
 
 def _llm_reply(query: str, context: Dict[str, Any], language: str) -> Tuple[str, List[Dict[str, Any]]]:
@@ -244,11 +316,15 @@ def _fmt_clock(m: int) -> str:
     return f'{m // 60:02d}:{m % 60:02d}'
 
 
-def plan_reply(req: Dict[str, Any], language: str = 'English') -> Dict[str, Any]:
-    """Run the constraint compiler and render a chat-friendly schedule.
+def build_plan(req: Dict[str, Any], language: str = 'English') -> Dict[str, Any]:
+    """Run the constraint compiler once and expose the render *and* the raw result.
 
-    Returns {reply, sources, mode} — same contract as respond(), so callers
-    (web bridge, WhatsApp webhook) treat both paths identically.
+    Returns the plan_reply contract ({reply, sources, mode}) plus:
+      compiled   — the solver payload on success (slots/assessments/…), else None
+      infeasible — the solver's explicit error list when it refused, else None
+      inputs     — what was actually requested (grades, minutes, subject, topics)
+    Nothing here fabricates: an infeasible request comes back with the engine's
+    reasons and no schedule. plan_reply() wraps this for the chat contract.
     """
     from .solver import CompileInput, GradeRequest, InfeasiblePlan, compile_schedule
 
@@ -256,6 +332,10 @@ def plan_reply(req: Dict[str, Any], language: str = 'English') -> Dict[str, Any]
     grades = [GradeRequest(grade=str(g), topic=f'{subject} practice for Grade {g}',
                            objective=f'Practise one {subject.lower()} idea suitable for Grade {g}')
               for g in req['grades']]
+    inputs = {'grades': [g.grade for g in grades],
+              'minutes': int(req['minutes']),
+              'subject': subject,
+              'topics': {g.grade: g.topic for g in grades}}
     inp = CompileInput(subject=subject, medium='English', board='context',
                        minutes=int(req['minutes']), grades=grades)
     try:
@@ -268,7 +348,8 @@ def plan_reply(req: Dict[str, Any], language: str = 'English') -> Dict[str, Any]
         return {'reply': '\n'.join(lines),
                 'sources': [{'title': 'THRIVE schedule constraints', 'org': 'THRIVE',
                              'why': 'pattern-based fallback, not an official curriculum source'}],
-                'mode': 'local-grounded'}
+                'mode': 'local-grounded',
+                'compiled': None, 'infeasible': list(e.errors), 'inputs': inputs}
 
     lines = [f'{subject} · {req["minutes"]} minutes · Grades {", ".join(req["grades"])}', '']
     for s in result['slots']:
@@ -288,7 +369,18 @@ def plan_reply(req: Dict[str, Any], language: str = 'English') -> Dict[str, Any]
     return {'reply': '\n'.join(lines),
             'sources': result['sources'] + [{'title': 'THRIVE schedule constraints', 'org': 'THRIVE',
                                              'why': 'schedule generated by the constraint compiler'}],
-            'mode': 'local-grounded'}
+            'mode': 'local-grounded',
+            'compiled': result, 'infeasible': None, 'inputs': inputs}
+
+
+def plan_reply(req: Dict[str, Any], language: str = 'English') -> Dict[str, Any]:
+    """Chat-facing plan reply — a thin wrapper over build_plan().
+
+    Keeps the exact {reply, sources, mode} contract the web bridge, web chat
+    and WhatsApp webhook already rely on (regression-tested in test_assistant).
+    """
+    out = build_plan(req, language)
+    return {'reply': out['reply'], 'sources': out['sources'], 'mode': out['mode']}
 
 
 def respond_plan(query: str, context: Dict[str, Any] | None = None,

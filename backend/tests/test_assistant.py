@@ -33,3 +33,18 @@ def test_local_reply_unknown_topic_is_honest():
 def test_hindi_language_flag():
     out = respond('reading activity', {}, 'Hindi')
     assert 'हिंदी' in out['reply']
+
+
+def test_hindi_reply_is_devanagari_not_transliteration():
+    # The Hindi path must actually answer in Devanagari, not prepend a
+    # transliterated notice to an English body.
+    out = respond('reading activity', {}, 'Hindi')
+    dev = sum(1 for ch in out['reply'] if 'ऀ' <= ch <= 'ॿ')
+    assert dev > 30
+
+
+def test_detect_language():
+    from app.assistant import detect_language
+    assert detect_language('How do I teach fractions') == 'English'
+    assert detect_language('मुझे गणित पढ़ाना है') == 'Hindi'
+    assert detect_language('') == 'English'

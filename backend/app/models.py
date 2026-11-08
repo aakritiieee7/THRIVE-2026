@@ -97,3 +97,48 @@ class AssistantMessage(Base):
     text = Column(Text, nullable=False)
     sources = Column(JSON, default=list)
     created_at = Column(String(32), nullable=False)
+
+
+class WhatsAppLink(Base):
+    """A WhatsApp sender (phone) bound to a THRIVE teacher account.
+
+    Binding is created only by redeeming a one-time pairing code that a
+    signed-in teacher obtained from the web — never by claiming a phone
+    number directly. One number per account and one account per number.
+    """
+    __tablename__ = 'whatsapp_links'
+    __table_args__ = (UniqueConstraint('teacher_id', name='uq_wa_link_teacher'),)
+
+    id = Column(Integer, primary_key=True)
+    teacher_id = Column(Integer, ForeignKey('teachers.id'), nullable=False,
+                        unique=True, index=True)
+    phone = Column(String(32), nullable=False, unique=True, index=True)
+    linked_at = Column(String(32), nullable=False)
+
+    teacher = relationship('Teacher')
+
+
+class WhatsAppPairing(Base):
+    """One-time link code issued from the web (SHA-256 hash only, short TTL)."""
+    __tablename__ = 'whatsapp_pairings'
+
+    id = Column(Integer, primary_key=True)
+    teacher_id = Column(Integer, ForeignKey('teachers.id'), nullable=False, index=True)
+    code_hash = Column(String(64), nullable=False, index=True)
+    expires_at = Column(String(32), nullable=False)
+    used_at = Column(String(32), nullable=True)
+    created_at = Column(String(32), nullable=False)
+
+
+class RemindTask(Base):
+    """A reminder set over WhatsApp (or web) and owned by a teacher account."""
+    __tablename__ = 'remind_tasks'
+
+    id = Column(Integer, primary_key=True)
+    teacher_id = Column(Integer, ForeignKey('teachers.id'), nullable=False, index=True)
+    text = Column(String(200), nullable=False)
+    remind_at = Column(String(32), nullable=False)
+    done = Column(Integer, default=0)   # SQLite-friendly boolean
+    created_at = Column(String(32), nullable=False)
+
+    teacher = relationship('Teacher')

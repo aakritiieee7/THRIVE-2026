@@ -78,6 +78,15 @@ export default function Login() {
             {error && <div className="notice" style={{ background: '#fbefec', borderColor: '#f2d8d0', color: '#925e4d', marginBottom: 12 }}>{error}</div>}
             <button className="btn btn-primary" type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
           </form>
+          <div className="divider" />
+          <button className="btn" type="button" disabled={busy} style={{ width: '100%' }}
+            onClick={() => { setEmail('demo@thrive.in'); setPassword('thrive-demo-2026'); setError('') }}>
+            Use the demo teacher account
+          </button>
+          <p className="muted" style={{ fontSize: 10.5, marginTop: 8, lineHeight: 1.6 }}>
+            Fills the demo credentials above — a seeded account with sample plans, progress and
+            community posts for walkthroughs. Seeded by <code>scripts/seed_demo.py</code>.
+          </p>
           <p className="muted" style={{ fontSize: 11, marginTop: 14, lineHeight: 1.6 }}>
             New to THRIVE? <Link href="/signup" className="text-link">Create a teacher account</Link>.<br />
             Or <Link href="/try" className="text-link">try THRIVE as a guest</Link> — no account needed.

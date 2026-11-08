@@ -60,6 +60,42 @@ cp .env.example .env          # set THRIVE_SECRET
 docker-compose up --build
 ```
 
+### 30-second demo (recommended for walkthroughs)
+
+```bash
+bash scripts/demo.sh
+```
+
+This seeds a **demo teacher account** with real content (two lesson plans whose
+schedules come from the multi-grade compiler, training-centre progress, and
+community posts), then starts the backend and frontend together. Open
+[http://localhost:3000/login](http://localhost:3000/login) and click
+**“Use the demo teacher account”**:
+
+| | |
+|---|---|
+| Email | `demo@thrive.in` |
+| Password | `thrive-demo-2026` |
+
+A suggested demo route:
+
+1. **Curriculum Studio** (`/compiler`) — build a multi-grade plan; try an
+   infeasible input to see it refused with explicit reasons.
+2. **Teaching assistant** (`/assistant`) — ask a question, note the per-reply
+   sources; switch the reply language to **Hindi**.
+3. **Chat** (`/chat`) — the WhatsApp-style bridge; type in Devanagari and it
+   replies in Hindi (language is auto-detected on the bridge).
+4. **WhatsApp status** (`/api/assistant/whatsapp/status`) — shows *simulation*
+   unless real Meta credentials are configured; the webhook and delivery-status
+   handling are built either way.
+
+Re-running `seed_demo.py` resets only its own rows (idempotent). To seed into
+the default database directly:
+
+```bash
+cd backend && ../backend/.venv/bin/python ../scripts/seed_demo.py
+```
+
 ### Tests
 
 ```bash
