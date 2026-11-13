@@ -2,20 +2,38 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { backendUp, getToken } from '../lib/api'
-import { useStoredState } from '../lib/storage'
+import { useStoredState, EMPTY_PROFILE } from '../lib/storage'
 import { IconBell, IconChat, IconFolder, IconHome, IconStudio, IconSparkle, IconBook, IconUsers, IconLayers } from './Icons'
 import { ThriveLogo } from './Logo'
 
-const nav = [
-  { href: '/', icon: IconHome, label: 'Home' },
-  { href: '/guided', icon: IconSparkle, label: 'Guided setup' },
-  { href: '/compiler', icon: IconStudio, label: 'Curriculum Studio', badge: 'CORE' },
-  { href: '/assistant', icon: IconChat, label: 'Teaching assistant' },
-  { href: '/training', icon: IconBook, label: 'Training centre' },
-  { href: '/updates', icon: IconBell, label: 'Verified updates' },
-  { href: '/community', icon: IconUsers, label: 'Teacher community' },
-  { href: '/resources', icon: IconFolder, label: 'My resources' },
+// Sidebar information architecture: grouped around classroom work,
+// professional development and teacher collaboration.
+const navGroups = [
+  {
+    label: 'Classroom work',
+    items: [
+      { href: '/', icon: IconHome, label: 'Home' },
+      { href: '/guided', icon: IconSparkle, label: 'Guided setup' },
+      { href: '/compiler', icon: IconStudio, label: 'Curriculum Studio' },
+      { href: '/assistant', icon: IconChat, label: 'Teaching assistant' },
+    ],
+  },
+  {
+    label: 'Professional development',
+    items: [
+      { href: '/training', icon: IconBook, label: 'Training centre' },
+      { href: '/updates', icon: IconBell, label: 'Verified updates' },
+    ],
+  },
+  {
+    label: 'Teacher collaboration',
+    items: [
+      { href: '/community', icon: IconUsers, label: 'Teacher community' },
+      { href: '/resources', icon: IconFolder, label: 'My resources' },
+    ],
+  },
 ]
+const nav = navGroups.flatMap(g => g.items)
 
 const mobileNav = [
   { href: '/', icon: IconHome, label: 'Home' },
@@ -29,7 +47,7 @@ export default function Layout({ children, title }: { children: React.ReactNode;
   const router = useRouter()
   const [signedIn, setSignedIn] = useState(false)
   const [online, setOnline] = useState<boolean | null>(null)
-  const [profile] = useStoredState<any>('profile', { name: '', state: 'Bihar' })
+  const [profile] = useStoredState<any>('profile', EMPTY_PROFILE)
 
   useEffect(() => { setSignedIn(!!getToken()) }, [router.pathname])
 
@@ -51,16 +69,18 @@ export default function Layout({ children, title }: { children: React.ReactNode;
         <Link href="/" className="brand-link"><ThriveLogo size={34} /></Link>
         <Link href="/landing" className="text-link" style={{ fontSize: 10, display: 'block', marginTop: 3 }}>About THRIVE</Link>
       </div>
-      <div className="side-label">Workspace</div>
       <nav aria-label="Main">
-        {nav.map(({ href, icon: Icon, label, badge }) =>
-          <Link key={href} href={href}
-            className={'nav-item ' + (router.pathname === href ? 'active' : '')}
-            aria-current={router.pathname === href ? 'page' : undefined}>
-            <span className="nav-icon"><Icon size={17} /></span>
-            {label}
-            {badge && <span className="nav-new">{badge}</span>}
-          </Link>)}
+        {navGroups.map(group =>
+          <div key={group.label} className="nav-group">
+            <div className="side-label">{group.label}</div>
+            {group.items.map(({ href, icon: Icon, label }) =>
+              <Link key={href} href={href}
+                className={'nav-item ' + (router.pathname === href ? 'active' : '')}
+                aria-current={router.pathname === href ? 'page' : undefined}>
+                <span className="nav-icon"><Icon size={17} /></span>
+                {label}
+              </Link>)}
+          </div>)}
       </nav>
       <div className="sidebar-bottom">
         <div className="offline">
@@ -69,14 +89,18 @@ export default function Layout({ children, title }: { children: React.ReactNode;
               ? { background: 'var(--honey)' }
               : online === null ? { background: 'var(--faint)' } : undefined} />
           {online === false
-            ? 'Backend offline · saving on this device'
+            ? 'Offline · saving on this device'
             : signedIn ? 'Signed in · work syncs to your account' : 'Your workspace is saved on this device'}
         </div>
         <Link className="teacher-card" href="/profile">
           <span className="avatar">{short[0]}</span>
           <span>
             <b>{profile.name || 'Sign in'}</b>
-            <small>{signedIn ? 'THRIVE teacher account' : `${profile.state || 'Set'} your context`}</small>
+            <small>{signedIn
+              ? 'THRIVE teacher account'
+              : (profile.state || profile.board
+                ? [profile.state, profile.board].filter(Boolean).join(' · ')
+                : 'Set your teaching context')}</small>
           </span>
           <span className="more">···</span>
         </Link>
@@ -98,7 +122,7 @@ export default function Layout({ children, title }: { children: React.ReactNode;
       <div className="page-content">{children}</div>
       <footer className="app-footer">
         THRIVE · Teacher Hub for Resources, Instruction, Verified Information &amp; Empowerment
-        <span>Curriculum seed: NCERT-aligned Grades 1–5 (Mathematics, EVS). Review against your official syllabus.</span>
+        <span>Included curriculum: NCERT-aligned Grades 1–5 (Mathematics, EVS). Review against your official syllabus.</span>
       </footer>
     </main>
 

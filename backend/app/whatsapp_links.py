@@ -18,6 +18,7 @@ Rules enforced here (server-side, never by the client):
 
 This module only touches its own tables; no API or assistant imports it.
 """
+import calendar
 import hashlib
 import secrets
 import time
@@ -44,9 +45,14 @@ def normalize_phone(raw: Any) -> str:
 
 
 def _epoch(ts: str) -> float:
-    """Parse the db.now() UTC format to epoch seconds; 0 when unparseable."""
+    """Parse the db.now() UTC format to epoch seconds; 0 when unparseable.
+
+    The timestamp is UTC (trailing Z) — use gmtime, not mktime, which would
+    treat it as local time. On a non-UTC machine that shift made a fresh
+    10-minute code read as hours old and expire immediately.
+    """
     try:
-        return time.mktime(time.strptime(ts, '%Y-%m-%dT%H:%M:%SZ'))
+        return float(calendar.timegm(time.strptime(ts, '%Y-%m-%dT%H:%M:%SZ')))
     except (ValueError, TypeError):
         return 0.0
 
@@ -104,8 +110,10 @@ def redeem(phone_raw: Any, message: str, db: Session) -> Dict[str, Any]:
     code = ''
     for tok in tokens:
         stripped = ''.join(ch for ch in tok.upper() if ch.isalnum())
-        if len(stripped) == CODE_LENGTH and stripped in CODE_ALPHABET and all(
-                ch in CODE_ALPHABET for ch in stripped):
+        # Membership (each char in the alphabet), not substring — `stripped in
+        # CODE_ALPHABET` would test the whole code as a contiguous run, which a
+        # random code is not, and silently rejected every real code.
+        if len(stripped) == CODE_LENGTH and all(ch in CODE_ALPHABET for ch in stripped):
             code = stripped
     if not code:
         return {'ok': False, 'teacher': None, 'relinked': False, 'reason': 'no-code'}

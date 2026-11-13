@@ -5,6 +5,7 @@ import { useRouter } from 'next/router'
 import { ThriveLogo } from '../components/Logo'
 import { api, setToken } from '../lib/api'
 import { getGuest, clearGuest } from '../lib/guest'
+import { EMPTY_PROFILE } from '../lib/storage'
 import { IllHero } from '../components/Illustrations'
 
 /**
@@ -29,11 +30,18 @@ export default function Login() {
       setToken(r.token)
       // Carry over any guest drafts into this account before leaving.
       await adoptGuestDrafts()
+      // Seed this device's teaching context from the account so the workspace
+      // greets the teacher with their own saved profile, not a blank one.
+      try {
+        const me = await api.get<any>('/api/auth/me')
+        const merged = { ...EMPTY_PROFILE, name: me.name, email: me.email, ...(me.profile || {}) }
+        localStorage.setItem('thrive:profile', JSON.stringify(merged))
+      } catch { /* offline: local context is still usable */ }
       router.push('/')
     } catch (err: any) {
       setError(err?.status === 401
         ? 'That email and password do not match an account.'
-        : (err?.message || 'Could not sign in. Is the backend running?'))
+        : (err?.message || 'Could not sign in right now — check your connection and try again.'))
     } finally {
       setBusy(false)
     }
@@ -75,18 +83,9 @@ export default function Login() {
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
                 placeholder="Your password" autoComplete="current-password" required />
             </div>
-            {error && <div className="notice" style={{ background: '#fbefec', borderColor: '#f2d8d0', color: '#925e4d', marginBottom: 12 }}>{error}</div>}
+            {error && <div className="notice" role="alert" style={{ background: '#fbefec', borderColor: '#f2d8d0', color: '#925e4d', marginBottom: 12 }}>{error}</div>}
             <button className="btn btn-primary" type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
           </form>
-          <div className="divider" />
-          <button className="btn" type="button" disabled={busy} style={{ width: '100%' }}
-            onClick={() => { setEmail('demo@thrive.in'); setPassword('thrive-demo-2026'); setError('') }}>
-            Use the demo teacher account
-          </button>
-          <p className="muted" style={{ fontSize: 10.5, marginTop: 8, lineHeight: 1.6 }}>
-            Fills the demo credentials above — a seeded account with sample plans, progress and
-            community posts for walkthroughs. Seeded by <code>scripts/seed_demo.py</code>.
-          </p>
           <p className="muted" style={{ fontSize: 11, marginTop: 14, lineHeight: 1.6 }}>
             New to THRIVE? <Link href="/signup" className="text-link">Create a teacher account</Link>.<br />
             Or <Link href="/try" className="text-link">try THRIVE as a guest</Link> — no account needed.

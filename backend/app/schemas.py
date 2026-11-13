@@ -71,6 +71,9 @@ class PostOut(BaseModel):
     body: str
     reports: int
     author: str
+    author_id: int = 0          # who wrote it (0 for legacy/seed rows)
+    helpful: int = 0            # server-stored helpful votes
+    my_helpful: bool = False    # has *this* signed-in teacher marked it
     location: str = ''
     created_at: str
     replies: List[Dict[str, Any]] = []
@@ -130,6 +133,10 @@ class ChatOut(BaseModel):
     sources: List[Dict[str, Any]] = []
     mode: str = 'grounded'
     transcript: str = ''  # what the assistant heard (voice input only)
+    # When the reply IS a compiled lesson plan, carry the real schedule so the
+    # frontend can open it in Curriculum Studio (convert-to-lesson-plan).
+    # None for ordinary answers — never fabricated.
+    plan: Optional[Dict[str, Any]] = None
 
 class GuestAskOut(ChatOut):
     """Guest ask reply — includes the remaining anonymous quota."""

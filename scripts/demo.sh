@@ -56,9 +56,11 @@ cat <<BANNER
 
   Demo walkthrough:
     1. Open http://localhost:$FRONTEND_PORT/login
-    2. Click "Use the demo teacher account", then Sign in
+    2. Sign in with the seeded demo account
        (email: demo@thrive.in, password: thrive-demo-2026)
+       or create your own at /signup, or explore as a guest at /try
     3. Tour: Curriculum Studio (compiler) -> Teaching assistant -> chat
+       -> Training centre -> Community
 
   Ctrl-C stops both servers.
 

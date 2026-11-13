@@ -60,6 +60,17 @@ class UpdateBookmark(Base):
     created_at = Column(String(32), nullable=False)
 
 
+class TrainingBookmark(Base):
+    """A saved course in the Training centre — same ledger shape as updates."""
+    __tablename__ = 'training_bookmarks'
+    __table_args__ = (UniqueConstraint('teacher_id', 'item_id', name='uq_training_bookmark_item'),)
+
+    id = Column(Integer, primary_key=True)
+    teacher_id = Column(Integer, ForeignKey('teachers.id'), nullable=False, index=True)
+    item_id = Column(String(64), nullable=False)
+    created_at = Column(String(32), nullable=False)
+
+
 class CommunityPost(Base):
     __tablename__ = 'community_posts'
 
@@ -69,10 +80,24 @@ class CommunityPost(Base):
     title = Column(String(160), nullable=False)
     body = Column(Text, nullable=False)
     reports = Column(Integer, default=0)
+    # Helpful votes are stored server-side (count on the post, per-teacher
+    # marks in community_helpful) so they are real data, not device-local.
+    helpful = Column(Integer, default=0)
     created_at = Column(String(32), nullable=False)
 
     teacher = relationship('Teacher', back_populates='posts')
     replies = relationship('CommunityReply', back_populates='post', cascade='all, delete-orphan')
+
+
+class CommunityHelpful(Base):
+    """One teacher's "helpful" mark on one post — the server's vote ledger."""
+    __tablename__ = 'community_helpful'
+    __table_args__ = (UniqueConstraint('teacher_id', 'post_id', name='uq_helpful_teacher_post'),)
+
+    id = Column(Integer, primary_key=True)
+    teacher_id = Column(Integer, ForeignKey('teachers.id'), nullable=False, index=True)
+    post_id = Column(Integer, ForeignKey('community_posts.id'), nullable=False, index=True)
+    created_at = Column(String(32), nullable=False)
 
 
 class CommunityReply(Base):

@@ -10,10 +10,11 @@ from sqlalchemy.orm import Session
 
 from .api_compiler import router as compiler_router
 from .api_auth import router as auth_router
-from .auth import get_current_user
+from .auth import get_current_user, get_optional_user
 from .db import get_db, now
-from .models import (AssistantMessage, CommunityPost, CommunityReply, LessonPlan,
-                     RemindTask, Teacher, TrainingProgress, UpdateBookmark)
+from .models import (AssistantMessage, CommunityHelpful, CommunityPost,
+                     CommunityReply, LessonPlan, RemindTask, Teacher,
+                     TrainingBookmark, TrainingProgress, UpdateBookmark)
 from .schemas import (AskIn, ChatIn, ChatOut, GuestAskIn, GuestAskOut, GuestPlanOut,
                       GuestTokenOut, GuestUpgradeIn, LessonPlanIn, LessonPlanOut,
                       LinkCodeOut, LinkStatusOut, PostIn, PostOut, ProgressIn,
@@ -51,7 +52,7 @@ def _curriculum_dir() -> str:
     for base in _CURRICULUM_CANDIDATES:
         if os.path.isdir(base):
             return base
-    raise HTTPException(status_code=500, detail='curriculum directory not found')
+    raise HTTPException(status_code=500, detail='The curriculum library is unavailable right now.')
 
 
 @router.get('/curriculum/sample')
@@ -62,8 +63,9 @@ def get_sample_curriculum():
             return json.load(f)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail='sample curriculum not found')
-    except Exception as e:  # pragma: no cover - defensive
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:  # pragma: no cover - defensive
+        # Never surface a raw exception to the client.
+        raise HTTPException(status_code=500, detail='The curriculum library could not be read right now.')
 
 
 @router.get('/curriculum/chapters')
@@ -83,7 +85,7 @@ def list_chapters(grade: str, subject: str = '', board: str = 'ncert_sample'):
                             or subject.lower() in s.get('name', '').lower()]
             return {'board': data.get('board'), 'grade': grade_norm,
                     'source': data.get('source'), 'subjects': subjects}
-    raise HTTPException(status_code=404, detail=f'No curriculum seeded for grade {grade_norm}')
+    raise HTTPException(status_code=404, detail=f'No curriculum loaded for grade {grade_norm}')
 
 
 # ---------------------------------------------------------------------------
@@ -103,7 +105,7 @@ def _build_whatsapp_plan(text: str, profile: Dict[str, Any], language: str,
 
     Returns None when the message is not a plan request at all (caller offers a
     hint). On success, when `save` is True, persists a LessonPlan whose payload
-    mirrors scripts/seed_demo.py so Curriculum Studio opens it unchanged, and
+    matches what Curriculum Studio saves, so the plan opens there unchanged, and
     wraps the compiler's reply into the plan_saved copy. Infeasible requests
     return the compiler's honest "cannot fit" reply with nothing saved.
     `preview=True` skips the write entirely.
@@ -132,7 +134,8 @@ def _build_whatsapp_plan(text: str, profile: Dict[str, Any], language: str,
     payload = {
         'title': title,
         'grades': [{'grade': g, 'topic': inputs['topics'].get(g, ''),
-                    'objective': ''} for g in inputs['grades']],
+                    'objective': f'Practise one {inputs["subject"].lower()} idea suitable for Grade {g}'}
+                   for g in inputs['grades']],
         'minutes': inputs['minutes'],
         'subject': inputs['subject'],
         'medium': '',
@@ -348,26 +351,83 @@ def remove_bookmark(item_id: str, teacher: Teacher = Depends(get_current_user), 
 
 
 # ---------------------------------------------------------------------------
-# Community (Pillar 5): posts, replies, likes handled client-side per-post,
-# reports feed a moderation counter.
+# Training bookmarks — same ledger as updates: courses saved for later.
 # ---------------------------------------------------------------------------
 
-def _post_out(p: CommunityPost) -> PostOut:
+@router.get('/training/bookmarks')
+def list_training_bookmarks(teacher: Teacher = Depends(get_current_user), db: Session = Depends(get_db)):
+    rows = db.query(TrainingBookmark).filter(TrainingBookmark.teacher_id == teacher.id).all()
+    return {'item_ids': [r.item_id for r in rows]}
+
+
+@router.put('/training/bookmarks/{item_id}')
+def add_training_bookmark(item_id: str, teacher: Teacher = Depends(get_current_user),
+                          db: Session = Depends(get_db)):
+    exists = db.query(TrainingBookmark).filter(
+        TrainingBookmark.teacher_id == teacher.id, TrainingBookmark.item_id == item_id).first()
+    if exists is None:
+        db.add(TrainingBookmark(teacher_id=teacher.id, item_id=item_id, created_at=now()))
+        db.commit()
+    return {'item_ids': [r.item_id for r in db.query(TrainingBookmark)
+                         .filter(TrainingBookmark.teacher_id == teacher.id).all()]}
+
+
+@router.delete('/training/bookmarks/{item_id}')
+def remove_training_bookmark(item_id: str, teacher: Teacher = Depends(get_current_user),
+                             db: Session = Depends(get_db)):
+    row = db.query(TrainingBookmark).filter(
+        TrainingBookmark.teacher_id == teacher.id, TrainingBookmark.item_id == item_id).first()
+    if row is not None:
+        db.delete(row)
+        db.commit()
+    return {'item_ids': [r.item_id for r in db.query(TrainingBookmark)
+                         .filter(TrainingBookmark.teacher_id == teacher.id).all()]}
+
+
+# ---------------------------------------------------------------------------
+# Community (Pillar 5): posts, replies, server-stored helpful votes, reports.
+# author_id lets the client tell teachers which posts are theirs to edit;
+# helpful votes live in community_helpful so a count survives across devices.
+# ---------------------------------------------------------------------------
+
+def _post_out(p: CommunityPost, my_helpful: bool = False) -> PostOut:
     return PostOut(
         id=p.id, topic=p.topic, title=p.title, body=p.body, reports=p.reports,
         author=p.teacher.name if p.teacher else 'Teacher',
+        author_id=p.teacher_id,
+        helpful=p.helpful or 0,
+        my_helpful=my_helpful,
         location=(p.teacher.profile or {}).get('state', '') if p.teacher else '',
         created_at=p.created_at,
-        replies=[{'id': r.id, 'name': r.author.name if r.author else 'Teacher', 'body': r.body}
+        replies=[{'id': r.id, 'name': r.author.name if r.author else 'Teacher',
+                  'teacher_id': r.teacher_id, 'body': r.body}
                  for r in p.replies],
     )
 
 
+def _owned_post(post_id: int, teacher: Teacher, db: Session) -> CommunityPost:
+    """Fetch a post the signed-in teacher wrote, else 404 (never 403 — an
+    author check should not confirm a stranger's post id)."""
+    post = db.get(CommunityPost, post_id)
+    if post is None or post.teacher_id != teacher.id:
+        raise HTTPException(status_code=404, detail='Post not found')
+    return post
+
+
 @router.get('/community/posts', response_model=list[PostOut])
-def list_posts(db: Session = Depends(get_db)):
+def list_posts(
+    teacher: Optional[Teacher] = Depends(get_optional_user),
+    db: Session = Depends(get_db),
+):
     rows = db.query(CommunityPost).filter(CommunityPost.reports < 2)\
              .order_by(CommunityPost.id.desc()).all()
-    return [_post_out(p) for p in rows]
+    marked: set = set()
+    if teacher is not None:
+        marked = {r.post_id for r in db.query(CommunityHelpful)
+                  .filter(CommunityHelpful.teacher_id == teacher.id).all()}
+    # my_helpful must be set while constructing the model — PostOut is
+    # immutable-ish for extra attributes once validated.
+    return [_post_out(p, my_helpful=p.id in marked) for p in rows]
 
 
 @router.post('/community/posts', response_model=PostOut)
@@ -377,11 +437,69 @@ def create_post(
     db: Session = Depends(get_db),
 ):
     post = CommunityPost(teacher_id=teacher.id, topic=req.topic, title=req.title,
-                         body=req.body, reports=0, created_at=now())
+                         body=req.body, reports=0, helpful=0, created_at=now())
     db.add(post)
     db.commit()
     db.refresh(post)
     return _post_out(post)
+
+
+@router.put('/community/posts/{post_id}', response_model=PostOut)
+def update_post(
+    post_id: int,
+    req: PostIn,
+    teacher: Teacher = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    post = _owned_post(post_id, teacher, db)
+    post.topic, post.title, post.body = req.topic, req.title, req.body
+    db.commit()
+    db.refresh(post)
+    return _post_out(post)
+
+
+@router.delete('/community/posts/{post_id}')
+def delete_post(
+    post_id: int,
+    teacher: Teacher = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    post = _owned_post(post_id, teacher, db)
+    # Reply rows hang off the post: clear them first (their FK is plain).
+    db.query(CommunityReply).filter(CommunityReply.post_id == post.id)\
+       .delete(synchronize_session=False)
+    db.query(CommunityHelpful).filter(CommunityHelpful.post_id == post.id)\
+       .delete(synchronize_session=False)
+    db.delete(post)
+    db.commit()
+    return {'status': 'deleted', 'id': post_id}
+
+
+@router.post('/community/posts/{post_id}/helpful')
+def toggle_helpful(
+    post_id: int,
+    teacher: Teacher = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Toggle this teacher's helpful mark — one vote per teacher per post."""
+    post = db.get(CommunityPost, post_id)
+    if post is None:
+        raise HTTPException(status_code=404, detail='Post not found')
+    existing = db.query(CommunityHelpful).filter(
+        CommunityHelpful.teacher_id == teacher.id,
+        CommunityHelpful.post_id == post.id).first()
+    if existing is not None:
+        db.delete(existing)
+        post.helpful = max(0, (post.helpful or 0) - 1)
+        marked = False
+    else:
+        db.add(CommunityHelpful(teacher_id=teacher.id, post_id=post.id,
+                                created_at=now()))
+        post.helpful = (post.helpful or 0) + 1
+        marked = True
+    db.commit()
+    return {'helpful': post.helpful or 0, 'my_helpful': marked}
+
 
 
 def save_post(title: str, body: str, teacher: Teacher,
@@ -403,7 +521,7 @@ def save_post(title: str, body: str, teacher: Teacher,
     if len(body) > 4000:
         raise HTTPException(status_code=422, detail='body too long')
     post = CommunityPost(teacher_id=teacher.id, topic='Multi-grade', title=title,
-                         body=body, reports=0, created_at=now())
+                         body=body, reports=0, helpful=0, created_at=now())
     db.add(post)
     db.commit()
     db.refresh(post)
@@ -460,10 +578,26 @@ def chat(
     db.add(AssistantMessage(teacher_id=teacher.id, role='assistant', text=result['reply'],
                             sources=result['sources'], created_at=now()))
     db.commit()
+    return _chat_out(result)
+
+
+def _chat_out(result: Dict[str, Any]) -> ChatOut:
+    """Map an engine result onto ChatOut.
+
+    The engine may return extra keys (compiled/inputs) when the reply is a
+    real schedule; those are folded into `plan` so the UI can offer
+    "open in Curriculum Studio". Everything else falls back to a valid,
+    honest ChatOut — never fabricated content.
+    """
+    plan = result.get('compiled') or None
+    if plan and isinstance(plan, dict):
+        inputs = result.get('inputs') if isinstance(result.get('inputs'), dict) else {}
+        plan = {**plan, 'inputs': inputs}
     try:
-        return ChatOut(**result)
+        return ChatOut(**{**result, 'plan': plan})
     except ValidationError:
-        return ChatOut(reply=result.get('reply', ''), sources=[], mode=result.get('mode', 'local-grounded'))
+        return ChatOut(reply=result.get('reply', ''), sources=[],
+                       mode=result.get('mode', 'local-grounded'), plan=plan)
 
 
 @router.delete('/assistant/messages')
@@ -509,11 +643,16 @@ def guest_ask(req: GuestAskIn, request: Request):
     guest_layer.record_ask(token)
     ctx = req.context if isinstance(req.context, dict) else {}
     result = assistant_engine.respond(req.message, ctx, req.language)
+    plan = result.get('compiled') or None
+    if plan and isinstance(plan, dict):
+        inputs = result.get('inputs') if isinstance(result.get('inputs'), dict) else {}
+        plan = {**plan, 'inputs': inputs}
     try:
-        out = GuestAskOut(**result, asks_remaining=guest_layer.guest_asks_remaining(token))
+        out = GuestAskOut(**{**result, 'plan': plan},
+                          asks_remaining=guest_layer.guest_asks_remaining(token))
     except ValidationError:
         out = GuestAskOut(reply=result.get('reply', ''), sources=[],
-                          mode=result.get('mode', 'local-grounded'),
+                          mode=result.get('mode', 'local-grounded'), plan=plan,
                           asks_remaining=guest_layer.guest_asks_remaining(token))
     return out
 
@@ -572,10 +711,7 @@ def ask(req: AskIn, request: Request):
     context = {'state': req.state, 'grades': req.grades, 'subjects': req.subjects}
     context = {k: v for k, v in context.items() if v}
     result = assistant_engine.respond(req.message, context, req.language)
-    try:
-        return ChatOut(**result)
-    except ValidationError:
-        return ChatOut(reply=result.get('reply', ''), sources=[], mode=result.get('mode', 'local-grounded'))
+    return _chat_out(result)
 
 
 @router.post('/assistant/bridge')
@@ -762,10 +898,10 @@ def whatsapp_status(db: Session = Depends(get_db)) -> Dict[str, Any]:
     note = ('Live Meta Cloud API sends are enabled. Inbound webhook replies are '
             "generated by THRIVE's assistant and delivered by Meta."
             if configured else
-            'No WhatsApp credentials configured (WHATSAPP_TOKEN / WHATSAPP_PHONE_ID). '
-            'The webhook and chatbot run in local simulation: replies are generated '
-            'and returned to the caller, but nothing is sent to a real phone. '
-            'See README to connect a Meta number.')
+            'WhatsApp is not connected yet — a WhatsApp Business number and its '
+            'credentials (WHATSAPP_TOKEN / WHATSAPP_PHONE_ID) still need to be added. '
+            'Until then, replies are generated by THRIVE’s assistant but nothing is '
+            'sent to a real phone. Your administrator can connect a number to go live.')
     if not signing:
         note += (' Webhook signature checking is OFF — set WHATSAPP_APP_SECRET '
                  'before going live.')

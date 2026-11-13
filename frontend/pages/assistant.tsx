@@ -1,14 +1,24 @@
 import {useEffect,useRef,useState} from 'react'
+import Link from 'next/link'
 import Layout from '../components/Layout'
-import {useStoredState} from '../lib/storage'
+import {useStoredState, EMPTY_PROFILE} from '../lib/storage'
 import {api,getToken,ApiError} from '../lib/api'
 import {ensureGuest,guestHeaders} from '../lib/guest'
+import {savePlan} from '../lib/plans'
 import {IllEmpty} from '../components/Illustrations'
 import {createRecognizer,speechSupported,VoiceState} from '../lib/voice'
-import {IconAlert,IconCheck,IconExternal,IconSparkle} from '../components/Icons'
+import {
+ IconAlert,IconCheck,IconClipboard,IconCopy,IconDownload,IconExternal,
+ IconLayers,IconLink,IconSave,IconSparkle,IconX,
+} from '../components/Icons'
 
 type Source={title?:string;org?:string;url?:string;why?:string}
-type Message={id:number;role:'teacher'|'assistant';text:string;sources?:Source[];mode?:string}
+/* plan: the compiled schedule when the reply IS a lesson plan (server-built).
+   draft:true marks the reply as a saved draft, not yet compiled. */
+type Message={
+ id:number;role:'teacher'|'assistant';text:string;sources?:Source[];mode?:string
+ plan?:any;planId?:number|string;draft?:boolean
+}
 
 const start:Message[]=[{id:1,role:'assistant',text:'Namaste. I can help you shape a classroom activity, adapt a lesson for different learning levels, or think through a teaching challenge. Tell me the grade, subject and what you are working on.',sources:[{title:'THRIVE teaching guidance',org:'THRIVE',why:'opening message'}],mode:'grounded'}]
 
@@ -42,15 +52,66 @@ function sourceKind(s:Source){
  const why=(s.why||'').toLowerCase()
  if(why.includes('matched')||why.includes('retrieved'))return {label:'Retrieved',retrieved:true}
  if(why.includes('fallback')||why.includes('pattern')||why.includes('general pedagogy'))return {label:'Suggestion',retrieved:false}
- if(why.includes('no account')||why.includes('unreachable')||why.includes('notice'))return {label:'Notice',retrieved:false}
+ if(why.includes('no account')||why.includes('notice')||why.includes('connection'))return {label:'Notice',retrieved:false}
  return {label:'Reference',retrieved:false}
+}
+
+/* ── reply → plan helpers ───────────────────────────────────────────
+   The compiled schedule arrives as `plan` (server-built). For messages
+   fetched from history (no plan field) we parse the reply text — header
+   "Subject · N minutes · Grades a, b" + slot lines — into a draft so
+   "Open in Curriculum Studio" always has real inputs to hydrate. Never
+   fabricated: if neither source exists, the action is simply not offered. */
+
+function parsePlanReply(text:string){
+ const lines=text.split('\n')
+ const head=lines[0]?.match(/^(.+?) · (\d+) minutes · Grades ([\d,\s&]+)$/)
+ if(!head)return null
+ const subject=head[1].trim(),minutes=Number(head[2])
+ const grades=Array.from(new Set(head[3].split(/[,\s&]+/).filter(Boolean))).map(g=>({grade:g,topic:'',objective:'',shared:''}))
+ if(!grades.length||!minutes)return null
+ const schedule:any[]=[]
+ for(const ln of lines){
+  const m=ln.match(/^(\d{1,2}):(\d{2})[–-](\d{1,2}):(\d{2})\s+(.+)$/)
+  if(!m)continue
+  const start=Number(m[1])*60+Number(m[2]),end=Number(m[3])*60+Number(m[4])
+  const label=m[5].trim()
+  const kind=/opening/i.test(label)?'opening':/closing/i.test(label)?'closing'
+   :/transition/i.test(label)?'transition':'turn'
+  const focus=(label.match(/Grade\s*\d+/i)||['All grades'])[0]
+  schedule.push({start,end,kind,focus,grades:grades.map(g=>`Grade ${g.grade}`),
+   objective:'',teacher:kind==='turn'?'You (teacher)':'Whole class',
+   activity:label,materials:'',check:''})
+ }
+ return {subject,minutes,grades,schedule}
+}
+
+async function copyText(t:string){
+ try{await navigator.clipboard.writeText(t);return true}
+ catch{ // clipboard blocked (http origin / permissions) — visible fallback
+  const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0'
+  document.body.appendChild(ta);ta.select();try{document.execCommand('copy')}catch{}finally{ta.remove()}
+  return true
+ }
+}
+function downloadText(filename:string,text:string){
+ const blob=new Blob([text],{type:'text/plain;charset=utf-8'})
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click()
+ URL.revokeObjectURL(a.href)
+}
+function toast(t:string){
+ const el=document.createElement('div');el.className='toast';el.setAttribute('aria-live','polite');el.textContent=t
+ document.body.appendChild(el);setTimeout(()=>el.remove(),2600)
 }
 
 export default function Assistant(){
  const [messages,setMessages]=useStoredState<Message[]>('assistant-messages',start)
- const [profile]=useStoredState<any>('profile',{state:'Bihar',board:'Bihar SCERT',medium:'Hindi + English',grades:'3, 5',subjects:'Mathematics'})
- const [plans]=useStoredState<any[]>('plans',[])
- const [text,setText]=useState(''),[language,setLanguage]=useState('English'),[busy,setBusy]=useState(false),[offline,setOffline]=useState(false)
+ const [profile]=useStoredState<any>('profile',EMPTY_PROFILE)
+ const [plans,setPlans]=useStoredState<any[]>('plans',[])
+ const [text,setText]=useState(''),[language,setLanguage]=useState(profile.language||'English'),[busy,setBusy]=useState(false),[offline,setOffline]=useState(false)
+
+ // Keep the reply language in step with the teacher's saved preference.
+ useEffect(()=>{if(profile.language&&profile.language!==language&&language==='English')setLanguage(profile.language)},[profile.language])
  const [suggested,setSuggested]=useState(false)
  const [voice,setVoice]=useState<VoiceState>('idle')
  const [heard,setHeard]=useState('')
@@ -104,22 +165,28 @@ export default function Assistant(){
    const sess=await ensureGuest()
    if(!sess){
     setMessages([...next,{id:Date.now()+1,role:'assistant',
-     text:'Could not start a guest session — the backend may be offline. Reload in a moment, or create an account for guaranteed access.',
-     sources:[{title:'Service notice',org:'THRIVE',why:'backend unreachable'}],mode:'local-grounded'}])
+     text:'Could not start a guest session right now — check your connection and reload in a moment, or create a free account to keep your work.',
+     sources:[{title:'Service notice',org:'THRIVE',why:'connection notice'}],mode:'local-grounded'}])
     setBusy(false);return
    }
    try{
-    const r=await api.post<any>('/api/guest/ask',{message:q.trim(),language},guestHeaders())
-    setMessages(m=>[...m,{id:Date.now()+1,role:'assistant',text:r.reply,sources:r.sources||[],mode:r.mode}])
+    // Guest asks carry the same teaching context as signed-in chat, so the
+    // engine can ground replies in the teacher's state/board/grades.
+    const ctx={
+     state:profile.state,board:profile.board,medium:profile.medium,
+     grades:profile.grades,subjects:profile.subjects,
+    }
+    const r=await api.post<any>('/api/guest/ask',{message:q.trim(),language,context:ctx},guestHeaders())
+    setMessages(m=>[...m,{id:Date.now()+1,role:'assistant',text:r.reply,sources:r.sources||[],mode:r.mode,plan:r.plan||undefined}])
     setOffline(false)
    }catch(err:any){
     const msg=err instanceof ApiError&&(err.status===401||err.status===429)
      ? err.message
-     : `I could not reach the assistant service (${err?.message||'network error'}). Your question is kept in this conversation — please retry in a moment.`
+     : `I could not reach THRIVE right now (${err?.message||'please try again in a moment'}). Your question is kept in this conversation — please retry in a moment.`
     setMessages(m=>[...m,{id:Date.now()+1,role:'assistant',
       text:msg,
-      sources:[{title:'Service notice',org:'THRIVE',why:'backend unreachable'}],
-      mode:err instanceof ApiError&&(err.status===401||err.status===429)?'local-grounded':'local-grounded'}])
+      sources:[{title:'Service notice',org:'THRIVE',why:'connection notice'}],
+      mode:'local-grounded'}])
     setOffline(!(err instanceof ApiError&&(err.status===401||err.status===429)))
    }finally{setBusy(false)}
    return
@@ -127,12 +194,12 @@ export default function Assistant(){
   // Signed-in: persisted chat with account history.
   try{
    const r=await api.post<any>('/api/assistant/chat',{message:q.trim(),language})
-   setMessages(m=>[...m,{id:Date.now()+1,role:'assistant',text:r.reply,sources:r.sources||[],mode:r.mode}])
+   setMessages(m=>[...m,{id:Date.now()+1,role:'assistant',text:r.reply,sources:r.sources||[],mode:r.mode,plan:r.plan||undefined}])
    setOffline(false)
   }catch(err:any){
    setMessages(m=>[...m,{id:Date.now()+1,role:'assistant',
-    text:`I could not reach the assistant service (${err?.message||'network error'}). Your question is kept in this conversation — please retry in a moment.`,
-    sources:[{title:'Service notice',org:'THRIVE',why:'backend unreachable'}],mode:'local-grounded'}])
+    text:`I could not reach THRIVE right now (${err?.message||'please try again in a moment'}). Your question is kept in this conversation — please retry in a moment.`,
+    sources:[{title:'Service notice',org:'THRIVE',why:'connection notice'}],mode:'local-grounded'}])
    setOffline(true)
   }finally{setBusy(false)}
  }
@@ -157,6 +224,107 @@ export default function Assistant(){
   if(getToken()){try{await api.delete('/api/assistant/messages')}catch{}}
  }
 
+ /* ── per-reply actions ─────────────────────────────────────────── */
+
+ function update(id:number,patch:Partial<Message>){
+  setMessages(ms=>ms.map(m=>m.id===id?{...m,...patch}:m))
+ }
+
+ async function copyReply(m:Message){
+  await copyText(m.text);toast('Reply copied')
+ }
+ function exportReply(m:Message){
+  const prev=messages.find(x=>x.id<m.id&&x.role==='teacher')
+  const body=[prev?`Q: ${prev.text}`:'',m.text,'',
+   ...(m.sources||[]).map((s,i)=>`[${i+1}] ${s.title||'Source'}${s.org?` — ${s.org}`:''}${s.why?` (${s.why})`:''}`)].join('\n')
+  downloadText(`thrive-reply-${new Date().toISOString().slice(0,10)}.txt`,body)
+  toast('Exported as a text file')
+ }
+
+ /* Save the reply as a plan draft in My resources — a real PlanItem the
+    resources page and studio can both read (draft text kept verbatim). */
+ async function saveDraft(m:Message){
+  const parsed=m.plan?null:parsePlanReply(m.text)
+  const head=(parsed||m.plan&&{subject:m.plan.subject,minutes:m.plan.minutes})
+  const subject=(head as any)?.subject||profile.subjects?.split(',')[0]||'Classroom note'
+  const minutes=Number((head as any)?.minutes)||40
+  const title=`${subject} — assistant reply`
+  const item={
+   title,subject,medium:profile.medium||'',board:profile.board||'',minutes,
+   grades:m.plan?.inputs?.grades?.map((g:string)=>({grade:String(g),topic:'',objective:'',shared:''}))
+    ||parsed?.grades||[],
+   schedule:m.plan?.slots||parsed?.schedule||[],
+   assessments:m.plan?.assessments||[],
+   sources:m.sources||[],
+   draft:m.text,
+   savedAt:new Date().toISOString(),
+  }
+  const stored=await savePlan(item as any)
+  setPlans([stored,...plans.filter(p=>String(p.id)!==String(stored.id))])
+  update(m.id,{planId:stored.id,draft:true})
+  toast('Saved to My resources as a draft')
+ }
+
+ /* Convert the reply into an editable lesson plan and open it in the
+    Curriculum Studio. Uses the server's compiled schedule when present,
+    else parses the reply header/slots into real inputs. */
+ async function openInStudio(m:Message){
+  const compiled=m.plan
+  const parsed=compiled?null:parsePlanReply(m.text)
+  if(!compiled&&!parsed){
+   toast('This reply has no schedule to open — ask for a lesson plan first')
+   return
+  }
+  const inputs=compiled?.inputs||{}
+  const grades=compiled
+   ? (inputs.grades||[]).map((g:string)=>({grade:String(g),topic:inputs.topics?.[String(g)]||'',objective:'',shared:''}))
+   : parsed!.grades
+  const item:any={
+   title:`${compiled?compiled.subject||inputs.subject||'Lesson plan':parsed!.subject}: ${grades.map((g:any)=>`Grade ${g.grade}`).join(' & ')}`,
+   subject:compiled?compiled.subject||inputs.subject||'Mathematics':parsed!.subject,
+   medium:profile.medium||'',board:profile.board||'',
+   minutes:compiled?inputs.minutes||compiled.slots?.at?.(-1)?.end||45:parsed!.minutes,
+   grades,
+   schedule:compiled?.slots||parsed!.schedule||[],
+   assessments:compiled?.assessments||[],
+   sources:compiled?.sources||m.sources||[],
+   savedAt:new Date().toISOString(),
+  }
+  const stored=await savePlan(item)
+  setPlans([stored,...plans.filter(p=>String(p.id)!==String(stored.id))])
+  update(m.id,{planId:stored.id})
+  sessionStorage.setItem('thrive:openPlan',JSON.stringify(stored))
+  window.location.href=`/compiler?open=${encodeURIComponent(String(stored.id))}`
+ }
+
+ function worksheet(m:Message){
+  const prev=messages.find(x=>x.id<m.id&&x.role==='teacher')
+  const title=prev?`Worksheet: ${prev.text.slice(0,60)}`:'Practice worksheet'
+  const body=[title,'='+'='.repeat(Math.min(title.length,60)),'',
+   'Name: __________________  Grade: ______  Date: __________','',
+   m.text,'',
+   'Instructions: attempt every question, then check your answers with a partner.','',
+   `Generated from THRIVE on ${new Date().toLocaleDateString()} — review before class.`].join('\n')
+  downloadText('thrive-worksheet.txt',body)
+  toast('Worksheet exported — edit it before photocopying')
+ }
+
+ function shareOnWhatsApp(m:Message){
+  const prev=messages.find(x=>x.id<m.id&&x.role==='teacher')
+  const msg=prev?`${prev.text}\n\n${m.text}`:m.text
+  window.open('https://wa.me/?text='+encodeURIComponent(msg.slice(0,1800)),'_blank','noopener')
+ }
+
+ /* Hand this reply to the quick chat thread (chat.tsx shows a banner). */
+ function sendToChat(m:Message){
+  const prev=messages.find(x=>x.id<m.id&&x.role==='teacher')
+  sessionStorage.setItem('thrive:appContext',JSON.stringify({
+   from:'assistant',title:prev?prev.text.slice(0,90):'From the teaching assistant',
+   reply:m.text,sources:m.sources||[],ts:Date.now(),
+  }))
+  window.location.href='/chat'
+ }
+
  const lastAssistant=[...messages].reverse().find(m=>m.role==='assistant')
  const lastPlan=plans[0]
  const ctxBits=[
@@ -168,7 +336,10 @@ export default function Assistant(){
 
  return <Layout title="Teaching assistant">
   <div className="page-heading"><div><div className="eyebrow">Teaching assistant</div><h1>Think through the next teaching move.</h1><p>Answers grounded in THRIVE's curriculum and pedagogy corpus, shaped by your teaching context.</p></div>
-   <div className="field" style={{margin:0,minWidth:125}}><label>Response language</label><select value={language} onChange={e=>setLanguage(e.target.value)}><option>English</option><option>Hindi</option></select></div>
+   <div style={{display:'flex',gap:8,alignItems:'flex-end',flexWrap:'wrap'}}>
+    <Link href="/chat" className="btn btn-small" title="Open the WhatsApp-style quick chat">Open quick chat</Link>
+    <div className="field" style={{margin:0,minWidth:125}}><label>Response language</label><select value={language} onChange={e=>setLanguage(e.target.value)}><option>English</option><option>Hindi</option></select></div>
+   </div>
   </div>
   <div className="grid" style={{gridTemplateColumns:'minmax(0,1fr) 260px',alignItems:'start'}}>
    <section className="panel chat-box">
@@ -194,9 +365,19 @@ export default function Assistant(){
       <div style={{whiteSpace:'pre-line'}}>{m.text}</div>
       {m.role==='assistant'&&modeLabel(m.mode)&&<div style={{marginTop:6}}>
         <span className={'mode-badge '+modeLabel(m.mode)!.cls}>{modeLabel(m.mode)!.text}</span>
+        {m.plan&&<span className="mode-badge grounded" style={{marginLeft:6}}>Compiled schedule</span>}
       </div>}
-      {m.sources&&m.sources.length>0&&<div className="sources-box">
-       {m.sources.map((s,i)=>{const kind=sourceKind(s);return <div className="src" key={i}>
+      {m.role==='assistant'&&m.plan&&<div className="notice" style={{marginTop:8,padding:'7px 9px',fontSize:10.5}}>
+       This reply contains a compiled multi-grade schedule.
+       <button className="btn btn-small" style={{marginLeft:8}} onClick={()=>openInStudio(m)}>
+        <IconLayers size={12}/> Open in Curriculum Studio</button>
+      </div>}
+      {m.role==='assistant'&&m.sources&&m.sources.length>0?
+       <details className="sources-box">
+        <summary style={{cursor:'pointer',fontSize:10,fontWeight:700}}>
+         Sources ({m.sources.length}) — retrieved curriculum vs suggestions
+        </summary>
+        {m.sources.map((s,i)=>{const kind=sourceKind(s);return <div className="src" key={i}>
          {kind.retrieved?<IconCheck size={12}/>:<IconAlert size={12}/>}
          <span>
           <b>[{i+1}] {s.title||'Source'}</b>
@@ -206,9 +387,24 @@ export default function Assistant(){
           {s.url&&<a href={s.url} target="_blank" rel="noreferrer" style={{marginLeft:4}}>Open source <IconExternal size={10} style={{display:'inline'}}/></a>}
          </span>
         </div>})}
+       </details>
+      :null}
+      {m.role==='assistant'&&m.id>start[0].id&&<div className="reply-actions no-print" aria-label="Actions for this reply">
+       <button className="btn btn-small" onClick={()=>copyReply(m)}><IconCopy size={12}/> Copy</button>
+       <button className="btn btn-small" onClick={()=>exportReply(m)}><IconDownload size={12}/> Export</button>
+       <button className="btn btn-small" onClick={()=>saveDraft(m)} title="Save this reply to My resources">
+        <IconSave size={12}/> {m.planId||m.draft?'Saved':'Save'}</button>
+       {(m.plan||parsePlanReply(m.text))&&<button className="btn btn-small btn-primary" onClick={()=>openInStudio(m)}>
+        <IconLayers size={12}/> Open as lesson plan</button>}
+       <button className="btn btn-small" onClick={()=>worksheet(m)} title="Download a practice worksheet based on this reply">
+        <IconClipboard size={12}/> Worksheet</button>
+       <button className="btn btn-small" onClick={()=>shareOnWhatsApp(m)} title="Share on WhatsApp">
+        <IconLink size={12}/> WhatsApp</button>
+       <button className="btn btn-small" onClick={()=>sendToChat(m)} title="Continue this in the quick chat">
+        <IconLink size={12}/> Quick chat</button>
       </div>}
      </div>)}
-     {busy&&<div className="bubble">Retrieving sources and drafting a practical suggestion…</div>}
+     {busy&&<div className="bubble" aria-live="polite">Retrieving sources and drafting a practical suggestion…</div>}
     </div>
     {lastAssistant&&!busy&&<div className="followups" aria-label="Follow-up actions">
      {FOLLOWUPS.map(f=><button className="followup" key={f} onClick={()=>sendFollowup(f)}>
@@ -220,21 +416,29 @@ export default function Assistant(){
        aria-label={voice==='listening'?'Stop voice input':'Ask by voice'} title={voice==='listening'?'Stop listening':'Speak your question'}>
       {voice==='listening'?'■':'●'}
      </button>
-     <input className="input" value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} placeholder={voice==='listening'?'Listening… speak in '+(language==='Hindi'?'Hindi':'English'):'Ask about a lesson, activity or classroom challenge…'}/>
+     <input className="input" value={text} onChange={e=>setText(e.target.value)}
+       onKeyDown={e=>{
+        // Don't submit mid-IME composition (Hindi/Japanese input).
+        if(e.key==='Enter'&&!e.nativeEvent.isComposing)send()
+       }}
+       placeholder={voice==='listening'?'Listening… speak in '+(language==='Hindi'?'Hindi':'English'):'Ask about a lesson, activity or classroom challenge…'}/>
      <button className="btn btn-primary" onClick={()=>send()} disabled={busy}>Send ↑</button>
     </div>
-    {voice==='listening'&&<div className="voice-status">Listening — speak now, then tap the mic again if it keeps recording.</div>}
-    {voice==='unsupported'&&<div className="voice-status">Voice input is not available in this browser. Type your question instead, or open THRIVE in Chrome or Edge.</div>}
-    {heard&&voice==='idle'&&<div className="voice-status idle">Heard: “{heard}” — edit the text before sending if anything was misheard.</div>}
-    <div style={{fontSize:9,color:'var(--muted)',marginTop:7,lineHeight:1.6}}>{offline?'Assistant service unavailable — see the notice above.':'Retrieved sources are from THRIVE’s curriculum corpus; suggestions and pattern replies are labelled as such — they are not curriculum facts.'}</div>
+    {voice==='listening'&&<div className="voice-status" aria-live="polite">Listening — speak now, then tap the mic again if it keeps recording.</div>}
+    {voice==='unsupported'&&<div className="voice-status" role="alert">Voice input is not available in this browser. Type your question instead, or open THRIVE in Chrome or Edge.</div>}
+    {heard&&voice==='idle'&&<div className="voice-status idle" aria-live="polite">Heard: “{heard}” — edit the text before sending if anything was misheard.</div>}
+    <div style={{fontSize:9,color:'var(--muted)',marginTop:7,lineHeight:1.6}}>{offline?'THRIVE is unreachable right now — your questions stay in this conversation and you can retry in a moment.':'Retrieved sources are from THRIVE’s curriculum corpus; suggestions and pattern replies are labelled as such — they are not curriculum facts.'}</div>
    </section>
    <aside className="panel">
     <div className="panel-title"><div><h2>Try asking</h2><p>Start with a classroom situation</p></div></div>
     <div style={{display:'grid',gap:8}}>{SUGGESTIONS.map(q=><button className="btn" style={{textAlign:'left',lineHeight:1.5,justifyContent:'flex-start'}} onClick={()=>send(q)} key={q}>{q}</button>)}</div>
     <div className="divider"/>
     <div style={{fontSize:10,fontWeight:700,marginBottom:7}}>After any reply</div>
-    <div className="muted" style={{fontSize:9.5,lineHeight:1.7,marginBottom:10}}>Six follow-up actions appear under each answer — simplify, adapt for another grade, create a worksheet, suggest a low-cost aid, generate an assessment, or ask for an alternative activity.</div>
-    <div className="notice">The assistant never replaces your professional judgement. Confirm curriculum-specific claims against your current official syllabus; THRIVE's seed corpus covers Grades 1–5 core chapters only.</div>
+    <div className="muted" style={{fontSize:9.5,lineHeight:1.7,marginBottom:10}}>
+     Six follow-up chips sit under the latest answer (simplify, adapt, worksheet, aid, assessment, alternative).
+     Every reply also offers Copy, Export, Save, Open as lesson plan, Worksheet, WhatsApp and Quick chat actions below it.
+     Lesson-plan replies open straight in Curriculum Studio.</div>
+    <div className="notice">The assistant never replaces your professional judgement. Confirm curriculum-specific claims against your current official syllabus; THRIVE's curriculum references cover Grades 1–5 core chapters only.</div>
    </aside>
   </div>
  </Layout>

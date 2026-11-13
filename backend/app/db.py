@@ -36,8 +36,9 @@ def _add_missing_columns() -> None:
     """Add columns introduced after a table was first created (SQLite dev DBs).
 
     There are no Alembic migrations in this project, so a pre-existing
-    thrive.db would otherwise lack newer columns (e.g. lesson_plans.guest_token).
-    Production deployments should still adopt Alembic for real migrations.
+    thrive.db would otherwise lack newer columns (e.g. lesson_plans.guest_token,
+    community_posts.helpful). Production deployments should still adopt
+    Alembic for real migrations.
     """
     from sqlalchemy import inspect, text
     inspector = inspect(engine)
@@ -45,6 +46,11 @@ def _add_missing_columns() -> None:
         existing = {t for t in inspector.get_table_names()}
         for table in Base.metadata.sorted_tables:
             if table.name not in existing:
+                continue
+            # community_helpful arrives with the helpful-votes feature; its
+            # parent table exists on older dev DBs but the table may not.
+            if table.name == 'community_helpful':
+                Base.metadata.create_all(bind=engine, tables=[table])
                 continue
             have = {c['name'] for c in inspector.get_columns(table.name)}
             with engine.begin() as conn:

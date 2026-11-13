@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import Layout from '../components/Layout'
 import { getToken } from '../lib/api'
-import { useStoredState } from '../lib/storage'
+import { useStoredState, EMPTY_PROFILE } from '../lib/storage'
+import { fetchPlans, mergePlans } from '../lib/plans'
 import { backendUp } from '../lib/api'
-import { seedCourses } from '../lib/storage'
+import { trainingCourses } from '../lib/storage'
+import { getGuest } from '../lib/guest'
 import {
   IconArrow, IconBook, IconChat, IconClock, IconFolder, IconLayers,
   IconPlus, IconSparkle, IconStudio, IconUsers, IconWand, IconClipboard,
@@ -15,17 +17,32 @@ const fmt = (n: number) => `${String(Math.floor(n / 60)).padStart(2, '0')}:${Str
 
 export default function Home() {
   const router = useRouter()
-  const [plans] = useStoredState<any[]>('plans', [])
-  const [profile] = useStoredState<any>('profile', { name: '', grades: '', subjects: '', state: 'Bihar', board: 'Bihar SCERT', medium: 'Hindi + English' })
+  const [plans, setPlans] = useStoredState<any[]>('plans', [])
+  const [profile] = useStoredState<any>('profile', EMPTY_PROFILE)
   const [progress] = useStoredState<Record<string, number>>('training-progress', {})
   const [greeting, setGreeting] = useState('Good morning')
   const [day, setDay] = useState('')
   const [status, setStatus] = useState<'checking' | 'online' | 'local'>('checking')
+  // Who is at the desk: a signed-in teacher, a guest exploring, or a first
+  // visitor. Each gets an honest greeting — nothing is pre-claimed.
+  const [signedIn, setSignedIn] = useState(false)
+  const [isGuest, setIsGuest] = useState(false)
 
-  // Public visitors get the landing page; teachers keep the workspace.
   useEffect(() => {
-    if (!getToken()) router.replace('/landing')
-  }, [router])
+    setSignedIn(!!getToken())
+    setIsGuest(!!getGuest())
+  }, [router.pathname])
+
+  // Pull saved plans from the account or guest session so the dashboard shows
+  // real work, merged over whatever this device already mirrors.
+  const plansRef = useRef(plans)
+  plansRef.current = plans
+  useEffect(() => {
+    ;(async () => {
+      const rows = await fetchPlans()
+      if (rows.length) setPlans(mergePlans(plansRef.current, rows))
+    })()
+  }, [])
 
   useEffect(() => {
     const h = new Date().getHours()
@@ -34,11 +51,18 @@ export default function Home() {
     backendUp().then((ok) => setStatus(ok ? 'online' : 'local'))
   }, [])
 
-  const firstName = (profile.name || '').trim().split(/\s+/)[0] || 'Teacher'
-  const lessonsDone = Object.values(progress).reduce((a, b) => a + b, 0)
-  const lessonsTotal = seedCourses.reduce((a, c) => a + c.lesson.length, 0)
-  const activeCourse = seedCourses.find(c => (progress[c.id] || 0) > 0 && (progress[c.id] || 0) < c.lesson.length)
   const gradeList = (profile.grades || '').split(',').map((g: string) => g.trim()).filter(Boolean)
+  const firstName = (profile.name || '').trim().split(/\s+/)[0] || ''
+  const hasContext = !!(profile.state || profile.board || profile.medium || gradeList.length)
+  const lessonsDone = Object.values(progress).reduce((a, b) => a + b, 0)
+  const lessonsTotal = trainingCourses.reduce((a, c) => a + c.lesson.length, 0)
+  const activeCourse = trainingCourses.find(c => (progress[c.id] || 0) > 0 && (progress[c.id] || 0) < c.lesson.length)
+  const contextTags = [
+    (profile.state || profile.board) ? [profile.state, profile.board].filter(Boolean).join(' · ') : '',
+    profile.medium || '',
+    gradeList.length ? `Grades ${gradeList.join(', ')}` : '',
+    profile.subjects || '',
+  ].filter(Boolean)
 
   return <Layout title="Home">
     {/* ── Greeting band: the workspace's front door ─────────────── */}
@@ -48,12 +72,26 @@ export default function Home() {
         <span aria-hidden="true">·</span>
         {status === 'checking' ? 'checking your workspace…' : status === 'online' ? 'workspace online' : 'saved on this device'}
       </div>
-      <h1>{greeting}, {firstName}.</h1>
-      <p>Plan one coordinated period across every grade in your room — or pick up where you left off.</p>
+      <h1>{greeting}{firstName ? `, ${firstName}` : ''}.</h1>
+      {signedIn
+        ? <p>Plan one coordinated period across every grade in your room — or pick up where you left off.</p>
+        : isGuest
+          ? <p>You're exploring as a guest — everything you save stays on this device until you create an account.</p>
+          : <p>Plan one coordinated period across every grade in your room. Save plans, progress and context with a free teacher account.</p>}
       <div className="greet-actions">
         <Link href="/compiler" className="btn btn-sun"><IconPlus size={14} /> Create a lesson plan</Link>
         <Link href="/assistant" className="btn"><IconChat size={14} /> Ask the teaching assistant</Link>
+        {!signedIn && !isGuest && <>
+          <Link href="/login" className="btn"><IconUsers size={14} /> Sign in</Link>
+          <Link href="/try" className="btn">Try as guest</Link>
+        </>}
+        {plans.length > 0 && <Link href="/resources" className="btn">Continue working ({plans.length} saved)</Link>}
       </div>
+      {!signedIn && !isGuest && day && (
+        <p className="muted" style={{ fontSize: 10.5, marginTop: 10 }}>
+          New here? <Link href="/guided" className="text-link">Guided setup</Link> walks you through your first lesson.
+        </p>
+      )}
     </div>
 
     {/* ── Primary shortcuts ─────────────────────────────────────── */}
@@ -61,7 +99,7 @@ export default function Home() {
       <Link href="/compiler" className="tile-card">
         <span className="tile-icon t-green"><IconStudio size={19} /></span>
         <b>Curriculum Studio</b>
-        <small>Constraint-checked multi-grade schedules, grounded in seeded curriculum structure.</small>
+        <small>Constraint-checked multi-grade schedules built around your classroom time and grade groups.</small>
         <span className="tile-link">Open studio <IconArrow size={12} /></span>
       </Link>
       <Link href="/assistant" className="tile-card">
@@ -115,10 +153,16 @@ export default function Home() {
         {/* Ongoing learning */}
         <section className="panel">
           <div className="panel-title">
-            <div><h2>Keep learning</h2><p>{lessonsDone} of {lessonsTotal} lessons done</p></div>
+            <div><h2>Keep learning</h2>
+              <p>{lessonsDone > 0 ? `${lessonsDone} of ${lessonsTotal} lessons done` : 'Nothing started yet'}</p></div>
             <Link href="/training" className="text-link">Training</Link>
           </div>
-          <div className="progress-line"><i style={{ width: `${Math.min(100, Math.round(lessonsDone / lessonsTotal * 100))}%` }} /></div>
+          {/* Honest progress: no bar at 0 — a claim of progress needs progress. */}
+          {lessonsDone > 0
+            ? <div className="progress-line"><i style={{ width: `${Math.min(100, Math.round(lessonsDone / lessonsTotal * 100))}%` }} /></div>
+            : <div className="muted" style={{ fontSize: 10.5, marginTop: 8, lineHeight: 1.6 }}>
+              Short practice courses start in the Training centre — progress appears here once you begin.
+            </div>}
           {activeCourse
             ? <Link href="/training" className="plan-item" style={{ marginTop: 12 }}>
               <span className="plan-icon"><IconBook size={15} /></span>
@@ -127,7 +171,7 @@ export default function Home() {
               <span className="right"><IconArrow size={14} /></span>
             </Link>
             : <div className="muted" style={{ fontSize: 11, marginTop: 11, lineHeight: 1.6 }}>
-              No course in progress. {seedCourses.length} short courses are waiting in the Training centre.
+              No course in progress. {trainingCourses.length} short courses are waiting in the Training centre.
             </div>}
         </section>
 
@@ -138,14 +182,19 @@ export default function Home() {
             <Link href="/profile" className="text-link">Edit</Link>
           </div>
           <div className="row" style={{ flexWrap: 'wrap', gap: 7 }}>
-            <span className="tag tag-green">{profile.state} · {profile.board}</span>
-            <span className="tag">{profile.medium}</span>
-            {gradeList.length > 0 && <span className="tag tag-honey">Grades {gradeList.join(', ')}</span>}
-            {profile.subjects && <span className="tag">{profile.subjects}</span>}
+            {contextTags.length
+              ? <>
+                {contextTags.slice(0, 2).map((t, i) => <span className="tag tag-green" key={i}>{t}</span>)}
+                {contextTags.slice(2).map((t, i) => <span className={'tag' + (i === 0 && gradeList.length ? ' tag-honey' : '')} key={i + 2}>{t}</span>)}
+              </>
+              : <div className="empty" style={{ padding: '14px 10px' }}>
+                No teaching context yet — set your state, board and grades so suggestions fit your classroom.
+                <Link href="/profile" className="btn btn-small" style={{ marginTop: 10 }}>Set your context</Link>
+              </div>}
           </div>
           <p className="muted" style={{ fontSize: 10.5, lineHeight: 1.6, marginTop: 12 }}>
-            Seeded coverage: NCERT-aligned Grades 1–5 (Mathematics, EVS). Bihar SCERT content is not yet ingested —
-            confirm against your official syllabus.
+            Included curriculum: NCERT-aligned Grades 1–5 (Mathematics, EVS). Bihar SCERT content is not
+            included yet — confirm against your official syllabus.
           </p>
         </section>
       </div>

@@ -68,19 +68,27 @@ bash scripts/demo.sh
 
 This seeds a **demo teacher account** with real content (two lesson plans whose
 schedules come from the multi-grade compiler, training-centre progress, and
-community posts), then starts the backend and frontend together. Open
-[http://localhost:3000/login](http://localhost:3000/login) and click
-**“Use the demo teacher account”**:
+community posts), then starts the backend and frontend together.
+
+Sign in at [http://localhost:3000/login](http://localhost:3000/login) with the
+credentials the script prints:
 
 | | |
 |---|---|
 | Email | `demo@thrive.in` |
 | Password | `thrive-demo-2026` |
 
+No account yet? Create one at [http://localhost:3000/signup](http://localhost:3000/signup),
+or explore as a guest at [http://localhost:3000/try](http://localhost:3000/try) —
+no sign-in required, and guest work is migrated into your account when you
+register.
+
 A suggested demo route:
 
 1. **Curriculum Studio** (`/compiler`) — build a multi-grade plan; try an
-   infeasible input to see it refused with explicit reasons.
+   infeasible input to see it refused with explicit reasons. Then edit one
+   teacher turn's activity or minutes and use **Regenerate this section** to
+   re-run just that turn from the inputs — every other edit stays put.
 2. **Teaching assistant** (`/assistant`) — ask a question, note the per-reply
    sources; switch the reply language to **Hindi**.
 3. **Chat** (`/chat`) — the WhatsApp-style bridge; type in Devanagari and it

@@ -50,6 +50,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (ct) res.setHeader('content-type', ct)
     res.send(text)
   } catch {
-    res.status(502).json({ detail: 'Backend unavailable. Start the FastAPI service on ' + BACKEND })
+    res.status(502).json({ detail: 'THRIVE is unreachable right now — please try again in a moment.' })
   }
 }

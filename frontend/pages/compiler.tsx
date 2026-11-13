@@ -1,11 +1,13 @@
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { useEffect, useMemo, useState } from 'react'
 import Layout from '../components/Layout'
-import { useStoredState } from '../lib/storage'
+import { useStoredState, EMPTY_PROFILE } from '../lib/storage'
 import { api } from '../lib/api'
+import { fetchPlans, mergePlans, normalizePlan, savePlan } from '../lib/plans'
 import { fetchChapters, matchChapter, SHARED_TOPICS, SubjectChapters } from '../lib/curriculum'
 import {
-  IconAlert, IconCheck, IconClipboard, IconClock, IconCopy, IconDownload, IconEdit,
+  IconAlert, IconCheck, IconClock, IconCopy, IconDownload, IconEdit,
   IconLayers, IconPlus, IconPrint, IconRefresh, IconSave, IconSparkle, IconX,
 } from '../components/Icons'
 
@@ -23,21 +25,28 @@ const TIME_CHIPS = [30, 35, 40, 45, 50, 60]
 const MIN_TURN = 5, MIN_OPEN = 4, MIN_CLOSE = 6
 
 export default function Compiler() {
-  const [profile] = useStoredState<any>('profile', { board: '', medium: '' })
+  const router = useRouter()
+  const [profile] = useStoredState<any>('profile', EMPTY_PROFILE)
+  const [loadingPlan, setLoadingPlan] = useState(false)
   const [grades, setGrades] = useState<GradePlan[]>([
     { grade: '3', topic: 'Shapes and Patterns', objective: 'Recognize common 2D shapes and create a repeating pattern', shared: '' },
     { grade: '5', topic: 'Fractions', objective: 'Represent and compare simple fractions using paper folding', shared: '' },
   ])
   const [minutes, setMinutes] = useState(45)
   const [subject, setSubject] = useState('Mathematics')
-  const [medium, setMedium] = useState(profile.medium || 'Hindi')
-  const [board, setBoard] = useState(profile.board || 'Bihar SCERT')
+  // Board/medium start from the teacher's own profile; blank until they pick.
+  // The selects below offer the real options, so nothing is pre-claimed as theirs.
+  const [medium, setMedium] = useState(profile.medium || '')
+  const [board, setBoard] = useState(profile.board || '')
   const [materials, setMaterials] = useState('paper, chalk, classroom objects')
   const [buffer, setBuffer] = useState(0)
   const [plan, setPlan] = useState<PlanResult | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [genError, setGenError] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
+  // Which timeline section (index) is being regenerated on its own, if any.
+  const [sectionBusy, setSectionBusy] = useState<number | null>(null)
+  const [sectionError, setSectionError] = useState<{ i: number; msgs: string[] } | null>(null)
   const [savedPlans, setSavedPlans] = useStoredState<any[]>('plans', [])
   const [toast, setToast] = useState('')
   const [catalogs, setCatalogs] = useState<Record<string, SubjectChapters[] | null>>({})
@@ -59,6 +68,59 @@ export default function Compiler() {
     })()
     return () => { live = false }
   }, [grades.map(g => g.grade).join(','), subject])
+
+  /* ── Open a saved plan (?open=<id>) ─────────────────────────────
+     Hydrates the whole form AND the generated timeline from the saved
+     payload, so "Open" in My resources lands on an editable plan rather
+     than a fresh one. Falls back to the server row when the local mirror
+     doesn't carry the payload (e.g. a fresh browser). */
+  useEffect(() => {
+    if (!router.isReady) return
+    const raw = router.query.open
+    if (!raw) return
+    const id = String(Array.isArray(raw) ? raw[0] : raw)
+    let cancelled = false
+    ;(async () => {
+      setLoadingPlan(true)
+      try {
+        let found = normalizePlan(JSON.parse(sessionStorage.getItem('thrive:openPlan') || 'null') || {})
+        if (!found || String(found.id) !== id) {
+          const rows = await fetchPlans()
+          const merged = mergePlans(savedPlans, rows)
+          found = merged.find(p => String(p.id) === id) || null
+          if (found) setSavedPlans(merged)
+        }
+        if (found && !cancelled) hydrate(found)
+      } catch { /* unreadable — fall through to the fresh form */ }
+      finally { if (!cancelled) setLoadingPlan(false) }
+    })()
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady, router.query.open])
+
+  function hydrate(p: any) {
+    if (p.grades?.length) {
+      setGrades(p.grades.map((g: any) => ({
+        grade: String(g.grade ?? g),
+        topic: g.topic || '', objective: g.objective || '', shared: g.shared || g.shared_group || '',
+      })))
+    }
+    if (p.minutes) setMinutes(Number(p.minutes))
+    if (p.subject) setSubject(p.subject)
+    if (p.medium) setMedium(p.medium)
+    if (p.board) setBoard(p.board)
+    if (typeof p.materials === 'string' && p.materials) setMaterials(p.materials)
+    if (typeof p.buffer === 'number') setBuffer(p.buffer)
+    if (p.schedule?.length) {
+      setPlan({ slots: p.schedule, assessments: p.assessments || [], engine: 'saved',
+                sources: p.sources || [] })
+    }
+    setToast(`Opened "${p.title || 'saved plan'}" — edit anything, then regenerate`)
+    setTimeout(() => setToast(''), 3200)
+    requestAnimationFrame(() =>
+      document.getElementById(p.schedule?.length ? 'plan-output' : 'studio-form')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
 
   function pickTopic(i: number, value: string) {
     setGrade(i, 'topic', value)
@@ -103,16 +165,24 @@ export default function Compiler() {
 
   async function generate() {
     setGenError([]); setPlan(null); setFieldErrors({})
+    // Board/medium are always required — the engine's defaults must never
+    // stand in for a choice the teacher hasn't made.
+    const fe: Record<string, string> = {}
+    const errs: string[] = []
+    if (!board.trim()) { fe.board = 'Choose a curriculum/board.'; errs.push('Choose a curriculum/board.') }
+    if (!medium.trim()) { fe.medium = 'Choose a medium of instruction.'; errs.push('Choose a medium of instruction.') }
     if (!feasibility.ok) {
-      const fe: Record<string, string> = {}
       if (minutes < 20 || minutes > 240 || !Number.isInteger(minutes)) fe.minutes = 'Choose 20–240 minutes.'
       grades.forEach((g, i) => {
         if (!g.topic.trim()) fe[`topic-${i}`] = 'Topic required.'
         if (!g.objective.trim()) fe[`objective-${i}`] = 'Learning goal required.'
         if (grades.findIndex(x => x.grade === g.grade) !== i) fe[`grade-${i}`] = 'Duplicate grade.'
       })
+      errs.push(...feasibility.errs)
+    }
+    if (errs.length) {
       setFieldErrors(fe)
-      setGenError(feasibility.errs)
+      setGenError(errs)
       requestAnimationFrame(() =>
         document.getElementById('studio-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
       return
@@ -130,31 +200,30 @@ export default function Compiler() {
     } catch (err: any) {
       // 422 = the engine refused the inputs. Show every reason, verbatim.
       if (err?.status === 422) setGenError(Array.isArray(err.message) ? err.message : [String(err.message)])
-      else setGenError([err?.message || 'Could not reach the compiler service. Check that the backend is running and retry.'])
+      else setGenError([err?.message || 'Could not build the schedule right now — check your connection and try again.'])
     } finally { setBusy(false) }
   }
 
-  async function save() {
+  async function save(asCopy = false) {
     if (!plan) return
-    const title = `${subject}: ${grades.map(g => `Grade ${g.grade}`).join(' & ')}`
+    const base = `${subject}: ${grades.map(g => `Grade ${g.grade}`).join(' & ')}`
+    const title = asCopy ? `${base} (copy)` : base
     const item = {
       title, grades, minutes, subject, medium, board, materials, buffer,
       schedule: plan.slots, assessments: plan.assessments, sources: plan.sources,
       savedAt: new Date().toISOString(),
     }
-    try {
-      const r = await api.post('/api/plans', { title, subject, medium, board, minutes, payload: item })
-      setSavedPlans([{ ...item, id: r.id, server: true }, ...savedPlans.filter(p => p.id !== r.id)])
-    } catch {
-      setSavedPlans([{ ...item, id: Date.now() }, ...savedPlans])
-    }
-    setToast('Lesson plan saved to My resources'); setTimeout(() => setToast(''), 2600)
+    const stored = await savePlan(item)
+    // Keep every other saved plan; replace by id so re-saving isn't a duplicate.
+    setSavedPlans([stored, ...savedPlans.filter(p => p.id !== stored.id)])
+    setToast(asCopy ? 'Duplicate saved to My resources' : 'Lesson plan saved to My resources')
+    setTimeout(() => setToast(''), 2600)
   }
 
   function planAsText() {
     if (!plan) return ''
     const lines = [
-      `${subject} · ${medium} · ${board} — ${minutes} minutes`,
+      [subject, medium, board].filter(Boolean).join(' · ') + ` — ${minutes} minutes`,
       grades.map(g => `Grade ${g.grade}: ${g.topic} — ${g.objective}`).join('\n'),
       '', 'Schedule:',
       ...plan.slots.map(s =>
@@ -183,6 +252,84 @@ export default function Compiler() {
     setTimeout(() => setToast(''), 2600)
   }
 
+  /* ── editable timeline ────────────────────────────────────────
+     Teachers may rewrite a slot's activity and shift its minutes. Start/end
+     times are always re-derived (prefix sums), so the plan still fills the
+     period exactly and the timeline can never lie about clock time. */
+  function setSlotActivity(i: number, activity: string) {
+    if (!plan) return
+    setPlan({ ...plan, slots: plan.slots.map((s, n) => n === i ? { ...s, activity } : s) })
+  }
+
+  function setSlotMinutes(i: number, mins: number) {
+    if (!plan) return
+    const slot = plan.slots[i]
+    const cur = slot.end - slot.start
+    const next = Math.max(1, Math.round(mins))
+    if (next === cur) return
+    // A longer slot may only claim the slack that follows it — never borrow
+    // from the past or push past the end of the period.
+    const slack = minutes - slot.end
+    const capped = Math.min(next, cur + slack)
+    const delta = capped - cur
+    const slots = plan.slots.map((s, n) => {
+      if (n < i) return s
+      if (n === i) return { ...s, start: s.start, end: s.end + delta }
+      return { ...s, start: s.start + delta, end: s.end + delta }
+    })
+    setPlan({ ...plan, slots })
+  }
+
+  /* ── section-level regeneration ────────────────────────────────
+     Re-run ONE teacher-turn section from the current form inputs without
+     discarding the rest of the timeline. Manual edits to other sections
+     (activity text and durations) are sent along and preserved; only the
+     chosen section gets fresh engine content. The server re-validates the
+     merged timeline against the same constraints a full compile obeys. */
+  async function regenerateSection(i: number) {
+    if (!plan || sectionBusy !== null) return
+    setSectionError(null); setSectionBusy(i)
+    try {
+      const body = {
+        subject, medium, board, minutes, materials, transition_buffer: buffer,
+        grades: grades.map(g => ({ grade: g.grade, topic: g.topic, objective: g.objective, shared_group: g.shared || null })),
+        slot_index: i,
+        slots: plan.slots,
+      }
+      const r = await api.post<any>('/api/compiler/regenerate', body)
+      if (Array.isArray(r?.slots) && r.slots.length === plan.slots.length) {
+        setPlan({ ...plan, slots: r.slots, assessments: r.assessments || plan.assessments, sources: r.sources || plan.sources })
+        setToast('Section rebuilt — your other timeline edits were kept')
+        setTimeout(() => setToast(''), 2600)
+      } else {
+        setSectionError({ i, msgs: ['The rebuilt plan did not match your timeline — nothing was changed.'] })
+      }
+    } catch (err: any) {
+      const msgs = err?.status === 422 && Array.isArray(err.message) ? err.message
+        : [err?.message || 'Could not rebuild this section right now — check your connection and try again.']
+      setSectionError({ i, msgs })
+    } finally { setSectionBusy(null) }
+  }
+
+  /* Timeline validity feeds the same notice style as input validation:
+     truthful times + engine minimums (4/5/6) + exactly the period length. */
+  const timelineIssues = useMemo(() => {
+    if (!plan) return [] as string[]
+    const errs: string[] = []
+    const slots = plan.slots
+    if (slots.length && slots[slots.length - 1].end !== minutes)
+      errs.push(`Timeline totals ${slots[slots.length - 1].end} min but the period is ${minutes} min.`)
+    slots.forEach((s, i) => {
+      if (i === 0 && s.start !== 0) errs.push(`Timeline must start at 00:00 (currently ${fmt(s.start)}).`)
+      if (i > 0 && s.start !== slots[i - 1].end) errs.push(`Gap or overlap before ${fmt(s.start)}.`)
+      const need = s.kind === 'opening' ? MIN_OPEN : s.kind === 'closing' ? MIN_CLOSE : s.kind === 'turn' ? MIN_TURN : 1
+      if (s.end - s.start < need)
+        errs.push(`${s.kind} at ${fmt(s.start)} is ${s.end - s.start} min — the engine's minimum is ${need} min.`)
+      if (!s.activity.trim()) errs.push(`The ${s.kind} at ${fmt(s.start)} has an empty activity.`)
+    })
+    return errs
+  }, [plan, minutes])
+
   const sharedKeys = useMemo(() => {
     const m: Record<string, string[]> = {}
     grades.forEach(g => { if (g.shared) (m[g.shared] ||= []).push(g.grade) })
@@ -202,20 +349,9 @@ export default function Compiler() {
     return out
   }, [genError, feasibility.need, minutes, grades, buffer])
 
-  /* Labelled demonstration: 1 teacher · Grades 3, 4, 5 · Mathematics · 45 min. */
-  function loadDemo() {
-    setSubject('Mathematics'); setMinutes(45); setBuffer(0)
-    setMaterials('paper, chalk, classroom objects')
-    setGrades([
-      { grade: '3', topic: 'Shapes and Patterns', objective: 'Recognize common 2D shapes and create a repeating pattern', shared: '' },
-      { grade: '4', topic: 'Numbers up to 1000', objective: 'Read, write and place three-digit numbers on a number line', shared: '' },
-      { grade: '5', topic: 'Fractions', objective: 'Represent and compare simple fractions using paper folding', shared: '' },
-    ])
-    setGenError([]); setPlan(null); setFieldErrors({})
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
   return <Layout title="Curriculum Studio">
+    {loadingPlan && (
+      <div className="notice" role="status" style={{ marginBottom: 14 }}>Loading your saved plan…</div>)}
     <div className="page-heading">
       <div>
         <div className="eyebrow">Curriculum Studio · multi-grade compiler</div>
@@ -223,17 +359,15 @@ export default function Compiler() {
         <p>Constraint-checked schedules across your grade groups — shared openings only when goals genuinely align, a teacher-led turn for every grade, and exact minute accounting.</p>
       </div>
       <div className="row" style={{ gap: 8 }}>
-        <button className="btn no-print" onClick={loadDemo} title="Load the illustrative demo scenario (labelled content)">
-          <IconClipboard size={14} /> Load demo scenario
-        </button>
         <Link href="/guided" className="btn no-print"><IconSparkle size={14} /> Guided walkthrough</Link>
       </div>
     </div>
 
     <div className="notice notice-warn" style={{ marginBottom: 16 }}>
-      <b>Curriculum coverage is partial.</b> Seeded NCERT-aligned chapters for Grades 1–5 (Mathematics, Environmental Studies).
-      Bihar SCERT content has not been ingested — teacher-entered goals are treated as context, and every suggestion should be
-      reviewed against your official syllabus.
+      <b>Curriculum coverage is partial.</b> THRIVE includes 13 NCERT-aligned chapters for Grades 1–5
+      (Mathematics for every grade, Environmental Studies in Grades 1, 3 and 5).
+      State-board content such as Bihar SCERT is not loaded yet: your own goals are used as context,
+      and every suggestion should be reviewed against your official syllabus.
     </div>
 
     <div className="grid studio-grid">
@@ -253,18 +387,26 @@ export default function Compiler() {
         </div>
 
         <div className="context-row" style={{ marginBottom: 4 }}>
-          <div className="field">
+          <div className={'field' + (fieldErrors.board ? ' invalid' : '')}>
             <label htmlFor="board">Curriculum / board</label>
-            <select id="board" value={board} onChange={e => setBoard(e.target.value)}>
-              {BOARDS.map(b => <option key={b}>{b}</option>)}
+            <select id="board" value={board}
+              onChange={e => { setBoard(e.target.value); setFieldErrors({ ...fieldErrors, board: '' }) }}
+              aria-invalid={!!fieldErrors.board}>
+              <option value="">Select a curriculum/board…</option>
+              {BOARDS.map(b => <option key={b} value={b}>{b}</option>)}
             </select>
-            <span className="hint">Seeded chapters are NCERT-aligned; other boards use your goals as context.</span>
+            {fieldErrors.board && <span className="hint" style={{ color: 'var(--clay)' }}>{fieldErrors.board}</span>}
+            <span className="hint">Included chapters are NCERT-aligned; other boards use your goals as context.</span>
           </div>
-          <div className="field">
+          <div className={'field' + (fieldErrors.medium ? ' invalid' : '')}>
             <label htmlFor="medium">Medium of instruction</label>
-            <select id="medium" value={medium} onChange={e => setMedium(e.target.value)}>
-              {MEDIA.map(m => <option key={m}>{m}</option>)}
+            <select id="medium" value={medium}
+              onChange={e => { setMedium(e.target.value); setFieldErrors({ ...fieldErrors, medium: '' }) }}
+              aria-invalid={!!fieldErrors.medium}>
+              <option value="">Select a medium…</option>
+              {MEDIA.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
+            {fieldErrors.medium && <span className="hint" style={{ color: 'var(--clay)' }}>{fieldErrors.medium}</span>}
           </div>
           <div className="field">
             <label htmlFor="subject">Subject</label>
@@ -303,7 +445,7 @@ export default function Compiler() {
           <div>
             <b style={{ fontSize: 12.5, fontFamily: "'Fraunces'" }}>Grade groups &amp; learning goals</b>
             <div className="muted" style={{ fontSize: 10.5, marginTop: 3 }}>
-              Pick a seeded chapter or enter your own goal — objectives auto-fill from curriculum outcomes when matched.
+              Pick a chapter from the list or type your own goal — objectives auto-fill from curriculum outcomes when matched.
             </div>
           </div>
           <span className="tag">{grades.length} / 6 groups</span>
@@ -346,7 +488,7 @@ export default function Compiler() {
                 </datalist>
                 {fieldErrors[`topic-${i}`] && <span className="hint" style={{ color: 'var(--clay)' }}>{fieldErrors[`topic-${i}`]}</span>}
                 {chapter && <span className="match-note"><IconCheck size={12} /> Curriculum match: {chSubject} · {chapter.id} · {chapter.learning_outcomes.length} outcomes</span>}
-                {!chapter && g.topic.trim() && <span className="match-note teachernote">Teacher-provided goal — not from the seeded corpus</span>}
+                {!chapter && g.topic.trim() && <span className="match-note teachernote">Your own goal — not in the included curriculum list</span>}
               </div>
 
               <div className={'field' + (fieldErrors[`objective-${i}`] ? ' invalid' : '')}>
@@ -468,12 +610,12 @@ export default function Compiler() {
         </div>
         <div className="divider" />
         <div className="panel-title" style={{ marginBottom: 8 }}>
-          <div><h2 style={{ fontSize: 14 }}>Curriculum ground truth</h2></div>
+          <div><h2 style={{ fontSize: 14 }}>What's covered here</h2></div>
         </div>
         <div className="source-line">
           <span><IconCheck size={12} /> Grades 1–5 · Mathematics (2 chapters/grade)</span>
           <span><IconCheck size={12} /> Grades 1, 3, 5 · Environmental Studies</span>
-          <span><IconAlert size={12} /> Bihar SCERT — not ingested, use as context only</span>
+          <span><IconAlert size={12} /> Bihar SCERT — not included, your goals are used as context</span>
         </div>
       </aside>
     </div>
@@ -484,18 +626,21 @@ export default function Compiler() {
         <div>
           <div className="eyebrow">Coordinated classroom schedule</div>
           <h2>{subject} · Grades {grades.map(g => g.grade).join(' & ')}</h2>
-          <p>{medium} · {board} · engine: {plan.engine}</p>
+          <p>{[medium, board].filter(Boolean).join(' · ')}{medium || board ? ' · ' : ''}checked against classroom time and grade-group rules</p>
         </div>
         <div className="plan-actions no-print">
           <button className="btn btn-small" onClick={() =>
             document.getElementById('studio-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
             <IconEdit size={13} /> Edit inputs</button>
-          <button className="btn btn-small" onClick={generate} disabled={busy}>
-            <IconRefresh size={13} /> {busy ? 'Compiling…' : 'Regenerate'}</button>
+          <button className="btn btn-small" onClick={generate} disabled={busy}
+            title="Discard manual timeline edits and re-compile from the form inputs">
+            <IconRefresh size={13} /> {busy ? 'Compiling…' : 'Regenerate original'}</button>
           <button className="btn btn-small" onClick={copyPlan}><IconCopy size={13} /> Copy</button>
           <button className="btn btn-small" onClick={() => window.print()}><IconPrint size={13} /> Print</button>
           <button className="btn btn-small" onClick={exportCsv}><IconDownload size={13} /> CSV</button>
-          <button className="btn btn-small btn-primary" onClick={save}><IconSave size={13} /> Save plan</button>
+          <button className="btn btn-small" onClick={() => save(true)} title="Save an extra copy without overwriting this one">
+            <IconSave size={13} /> Save a copy</button>
+          <button className="btn btn-small btn-primary" onClick={() => save(false)}><IconSave size={13} /> Save plan</button>
         </div>
       </div>
 
@@ -517,6 +662,15 @@ export default function Compiler() {
       </div>
 
       {/* Minute-by-minute timeline */}
+      {timelineIssues.length > 0 &&
+        <div className="notice notice-warn" role="status" style={{ marginBottom: 12 }}>
+          <b>Timeline edits need attention.</b>
+          <div style={{ marginTop: 5 }}>
+            {timelineIssues.slice(0, 3).map((e, i) => <div key={i}>• {e}</div>)}
+          </div>
+          {timelineIssues.length > 3 && <div>…and {timelineIssues.length - 3} more.</div>}
+          <div style={{ marginTop: 6 }}>Fix the flagged section above, or regenerate original to restore the compiler's validated schedule.</div>
+        </div>}
       <div className="timeline">
         {plan.slots.map((s, i) => {
           const cls = s.kind === 'opening' ? ' pb-opening-b' : s.kind === 'closing' ? ' pb-closing-b' : s.kind === 'transition' ? ' pb-transition-b' : ''
@@ -531,11 +685,28 @@ export default function Compiler() {
               <b>{fmt(s.start)}–{fmt(s.end)}</b>
               <small>{s.end - s.start} min</small>
               <span className={'phase-badge pb-' + s.kind}>{s.kind}</span>
+              <label className="muted" style={{ fontSize: 9, marginTop: 6, display: 'block' }} htmlFor={`slot-min-${i}`}>
+                Minutes
+              </label>
+              <input id={`slot-min-${i}`} type="number" min={1} max={minutes}
+                value={s.end - s.start}
+                onChange={e => setSlotMinutes(i, Number(e.target.value) || 1)}
+                style={{ width: 64, marginTop: 2, padding: '4px 6px', fontSize: 11 }}
+                aria-label={`Minutes for the ${s.kind} at ${fmt(s.start)}`} />
             </div>
             <div className="tl-body">
               <b>{s.focus}</b>
               <div className="role">{s.teacher} · {s.objective}</div>
-              <p>{s.activity}</p>
+              <label className="muted" style={{ fontSize: 9.5 }} htmlFor={`slot-act-${i}`}>
+                Activity — edit freely; times above re-budget automatically
+              </label>
+              <textarea id={`slot-act-${i}`} value={s.activity} rows={2}
+                onChange={e => setSlotActivity(i, e.target.value)}
+                aria-label={`Activity for the ${s.kind} at ${fmt(s.start)}`}
+                style={{ width: '100%', minHeight: 52, resize: 'vertical', fontSize: 12.5,
+                  lineHeight: 1.55, padding: '7px 9px', borderRadius: 9,
+                  border: '1px solid var(--line)', background: 'var(--paper)',
+                  fontFamily: 'inherit', color: 'var(--ink)', marginTop: 4 }} />
               {lanes.length > 0 &&
                 <div className="lanes">
                   {lanes.map((l, n) =>
@@ -551,6 +722,14 @@ export default function Compiler() {
                   </div>
                 </div>}
               <div className="tl-check"><IconCheck size={13} /> {s.check}</div>
+              {s.kind === 'turn' && <div style={{ marginTop: 9, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <button className="btn btn-small no-print" onClick={() => regenerateSection(i)}
+                  disabled={sectionBusy !== null}
+                  title="Re-run only this teacher turn from the current inputs — your other timeline edits are kept">
+                  <IconRefresh size={12} /> {sectionBusy === i ? 'Rebuilding this section…' : 'Regenerate this section'}</button>
+                {sectionError?.i === i && <span role="alert" style={{ fontSize: 10, color: 'var(--clay)' }}>
+                  {sectionError.msgs.slice(0, 2).join(' ')}</span>}
+              </div>}
             </div>
           </div>
         })}
@@ -586,10 +765,10 @@ export default function Compiler() {
       <div className="source-line">
         {plan.sources.map((s, i) =>
           <span key={i}><IconCheck size={12} /> {s.note}</span>)}
-        <span><IconAlert size={12} /> Seeded curriculum: NCERT-aligned Grades 1–5, Mathematics &amp; EVS only — confirm against your official syllabus.</span>
+        <span><IconAlert size={12} /> Included curriculum: NCERT-aligned Grades 1–5, Mathematics &amp; EVS only — confirm against your official syllabus.</span>
       </div>
     </section>}
 
-    {toast && <div className="toast"><IconCheck size={14} /> {toast}</div>}
+    {toast && <div className="toast" aria-live="polite"><IconCheck size={14} /> {toast}</div>}
   </Layout>
 }

@@ -148,6 +148,17 @@ def test_updates_bookmarks(client, auth):
     assert client.get('/updates/bookmarks', headers=auth).json()['item_ids'] == []
 
 
+def test_training_bookmarks(client, auth):
+    assert client.get('/training/bookmarks', headers=auth).json()['item_ids'] == []
+    client.put('/training/bookmarks/c1', headers=auth)
+    client.put('/training/bookmarks/c1', headers=auth)  # idempotent
+    assert client.get('/training/bookmarks', headers=auth).json()['item_ids'] == ['c1']
+    client.delete('/training/bookmarks/c1', headers=auth)
+    assert client.get('/training/bookmarks', headers=auth).json()['item_ids'] == []
+    # auth required
+    assert client.get('/training/bookmarks').status_code == 401
+
+
 def test_community_flow(client, auth):
     post = client.post('/community/posts', headers=auth, json={
         'topic': 'Multi-grade', 'title': 'Board task cards', 'body': 'I write three next-step tasks before class starts.'})
@@ -162,6 +173,76 @@ def test_community_flow(client, auth):
 
 def test_community_post_requires_auth(client):
     assert client.post('/community/posts', json={'title': 'abc', 'body': 'abcdefgh'}).status_code == 401
+
+
+def test_account_deletion_purges_everything(client, auth):
+    """DELETE /auth/me removes the account and every row keyed to it."""
+    # A plan, a training row, a bookmark, an assistant message, a reminder.
+    plan = client.post('/plans', headers=auth, json={'title': 'to delete', 'minutes': 30, 'payload': {}}).json()
+    client.put('/training/progress', headers=auth, json={'course_id': 'c1', 'lessons_done': 2})
+    client.put('/updates/bookmarks/u1', headers=auth)
+    client.post('/assistant/chat', headers=auth, json={'message': 'hello'})
+    client.post('/reminders', headers=auth, json={'text': 'check c1', 'remind_at': '2026-11-10T08:00:00Z'})
+    post = client.post('/community/posts', headers=auth, json={
+        'topic': 'Multi-grade', 'title': 'A post I will delete', 'body': 'Body of the post to be removed.'}).json()
+    # Helpful votes this teacher cast on ANOTHER teacher's post — a plain-FK
+    # row that must be purged before the account can go.
+    r2 = client.post('/auth/signup', json={'name': 'Peer', 'email': 'peer@example.com', 'password': 'secret1'})
+    peer = {'Authorization': f"Bearer {r2.json()['token']}"}
+    peer_post = client.post('/community/posts', headers=peer, json={
+        'topic': 'Literacy', 'title': 'Peer post to vote on', 'body': 'A peer writes this for the vote test.'}).json()
+    assert client.post(f"/community/posts/{peer_post['id']}/helpful", headers=auth).json()['my_helpful'] is True
+
+    r = client.request('DELETE', '/auth/me', headers=auth)
+    assert r.status_code == 200, r.text
+    assert r.json()['status'] == 'deleted'
+
+    # The token no longer resolves to an account.
+    assert client.get('/auth/me', headers=auth).status_code == 401
+    assert client.post('/auth/login', json={'email': 't@example.com', 'password': 'secret1'}).status_code == 401
+    # Owned rows are gone, and the community post was taken down too.
+    assert client.get('/plans', headers=auth).status_code == 401
+    assert all(p['id'] != post['id'] for p in client.get('/community/posts').json())
+    # The email is free again for a fresh signup.
+    fresh = client.post('/auth/signup', json={'name': 'Fresh', 'email': 't@example.com', 'password': 'newpass1'})
+    assert fresh.status_code == 200, fresh.text
+
+
+def test_community_edit_delete_and_helpful_votes(client, auth):
+    post = client.post('/community/posts', headers=auth, json={
+        'topic': 'Literacy', 'title': 'Pair reading routine', 'body': 'Two learners read the same page, then swap.'})
+    assert post.status_code == 200, post.text
+    pid = post.json()['id']
+    # author_id is exposed so the client can tell teachers what they own
+    assert post.json()['author_id'] > 0
+
+    updated = client.put(f'/community/posts/{pid}', headers=auth, json={
+        'topic': 'Literacy', 'title': 'Pair reading routine v2', 'body': 'Two learners read the same page, then swap roles.'})
+    assert updated.status_code == 200 and updated.json()['title'] == 'Pair reading routine v2'
+
+    # a second account may not edit or delete someone else's post
+    r2 = client.post('/auth/signup', json={'name': 'Other', 'email': 'o@example.com', 'password': 'secret1'})
+    other = {'Authorization': f"Bearer {r2.json()['token']}"}
+    assert client.put(f'/community/posts/{pid}', headers=other,
+                      json={'topic': 'Literacy', 'title': 'Hijacked title', 'body': 'Trying to edit another teacher.'}).status_code == 404
+    assert client.delete(f'/community/posts/{pid}', headers=other).status_code == 404
+
+    # helpful votes are server-stored and toggle per teacher
+    assert client.post(f'/community/posts/{pid}/helpful', headers=auth).json() == {'helpful': 1, 'my_helpful': True}
+    assert client.post(f'/community/posts/{pid}/helpful', headers=auth).json() == {'helpful': 0, 'my_helpful': False}
+    assert client.post(f'/community/posts/{pid}/helpful', headers=auth).json()['helpful'] == 1
+    listed = {p['id']: p for p in client.get('/community/posts', headers=auth).json()}
+    assert listed[pid]['helpful'] == 1 and listed[pid]['my_helpful'] is True
+    # unauthenticated readers see the count but no personal mark
+    anon = {p['id']: p for p in client.get('/community/posts').json()}
+    assert anon[pid]['helpful'] == 1 and anon[pid]['my_helpful'] is False
+
+    # the author deletes it: replies and votes go with it
+    client.post(f'/community/posts/{pid}/replies', headers=auth, json={'body': 'We tried it too.'})
+    assert client.delete(f'/community/posts/{pid}', headers=auth).status_code == 200
+    assert all(p['id'] != pid for p in client.get('/community/posts').json())
+    # repeat delete is a 404, not a crash
+    assert client.delete(f'/community/posts/{pid}', headers=auth).status_code == 404
 
 
 def test_assistant_chat_and_history(client, auth):
@@ -347,3 +428,145 @@ def test_whatsapp_delivery_status_acknowledged_not_answered(client):
     assert body['status'] == 'delivered'
     assert body['message_id'] == 'wamid.abc'
     assert 'reply' not in body  # a receipt must not spawn an assistant reply
+
+
+def _wa_message(client, phone, body):
+    """POST one inbound WhatsApp message the way Meta's webhook delivers it."""
+    return client.post('/assistant/whatsapp', json={'entry': [{'changes': [{'value': {
+        'messages': [{'from': phone, 'text': {'body': body}}]}}]}]})
+
+
+def test_whatsapp_link_code_redeem_and_write(client, auth):
+    """Full link flow: mint on the web, redeem via webhook, then a command
+    from the linked number writes to the account. Regression test for two
+    bugs that kept the 56-test suite green while linking silently failed:
+    (1) the code was matched with a substring `in` on the alphabet string,
+    rejecting every random code; (2) the 10-minute TTL was parsed with a
+    local-time mktime, expiring fresh codes on any non-UTC machine."""
+    # 1. Mint a one-time code on the (signed-in) web surface.
+    issued = client.post('/assistant/whatsapp/link-code', headers=auth)
+    assert issued.status_code == 200, issued.text
+    code = issued.json()['code']
+    assert len(code) == 8 and all(ch not in '0O1I' for ch in code)
+
+    # 2. Redeem it by sending it from a WhatsApp number — this must bind.
+    phone = '+919000011111'
+    r = _wa_message(client, phone, 'link ' + code)
+    assert r.status_code == 200
+    body = r.json()
+    assert body['action'] == 'link'
+    assert 'Connected' in body['reply'] or 'जुड़' in body['reply'], body['reply']
+
+    # The number is now bound (masked, never the full digits).
+    status = client.get('/assistant/whatsapp/link', headers=auth).json()
+    assert status['linked'] is True
+    assert status['phone_masked'].endswith('1111')
+
+    # 3. A command from the linked number writes to THAT account.
+    plan = _wa_message(client, phone, 'plan: Grade 2 and 3, 40 min, maths')
+    assert plan.status_code == 200
+    p = plan.json()
+    assert p['action'] == 'plan'
+    assert p['saved_id'] is not None
+    saved = client.get('/plans', headers=auth).json()
+    assert any(x['id'] == p['saved_id'] for x in saved), 'plan from WhatsApp must be saved to the account'
+
+    # 4. A DIFFERENT, unlinked number gets guest behaviour and cannot write.
+    other = _wa_message(client, '+919000099999', 'plan: Grade 2 and 3, 40 min, maths')
+    assert other.json()['action'] == 'plan'
+    assert other.json()['saved_id'] is None
+    assert 'THRIVE account' in other.json()['reply'] or 'खात' in other.json()['reply']
+
+
+def test_whatsapp_link_code_single_use_and_expired(client, auth):
+    """A redeemed code cannot be reused; a code that no longer matches is refused."""
+    code = client.post('/assistant/whatsapp/link-code', headers=auth).json()['code']
+    phone = '+919000022222'
+
+    first = _wa_message(client, phone, 'link ' + code)
+    assert first.json()['action'] == 'link'
+    assert 'Connected' in first.json()['reply']
+
+    # A *different* number replaying the consumed code gets nothing — single-use.
+    replay = _wa_message(client, '+919000033333', 'link ' + code)
+    assert replay.json()['action'] == 'link'
+    assert 'not one I issued' in replay.json()['reply'] or 'नह' in replay.json()['reply']
+
+
+# ---------------------------------------------------------------------------
+# Section-level regeneration (POST /compiler/regenerate): rebuild ONE teacher
+# turn while every other slot — including the teacher's own edits — survives.
+# ---------------------------------------------------------------------------
+
+def _compile_two_grade(client):
+    body = {
+        'subject': 'Mathematics', 'medium': 'English', 'board': 'NCERT',
+        'minutes': 45, 'materials': 'paper, chalk', 'transition_buffer': 0,
+        'grades': [
+            {'grade': '3', 'topic': 'Shapes', 'objective': 'Name shapes'},
+            {'grade': '5', 'topic': 'Fractions', 'objective': 'Compare fractions'},
+        ],
+    }
+    r = client.post('/compiler/run', json=body)
+    assert r.status_code == 200, r.text
+    return body, r.json()['slots']
+
+
+def test_regenerate_single_section_keeps_timeline(client):
+    body, slots = _compile_two_grade(client)
+    turn_i = next(i for i, s in enumerate(slots) if s['kind'] == 'turn')
+    r = client.post('/compiler/regenerate', json={**body, 'slot_index': turn_i, 'slots': slots})
+    assert r.status_code == 200, r.text
+    out = r.json()['slots']
+    # same shape, same clock times, fresh content on the target section
+    assert [(s['start'], s['end']) for s in out] == [(s['start'], s['end']) for s in slots]
+    assert out[turn_i]['activity']
+    assert out[turn_i]['lanes']
+    assert r.json()['assessments'], 'regenerated plan still carries assessments'
+
+
+def test_regenerate_preserves_manual_edits(client):
+    import copy
+    body, slots = _compile_two_grade(client)
+    turn_i = next(i for i, s in enumerate(slots) if s['kind'] == 'turn')
+    # Teacher lengthened the turn (closing absorbs) and rewrote the OTHER
+    # turn's activity by hand — both edits must survive a section regen.
+    edited = copy.deepcopy(slots)
+    edited[turn_i]['end'] += 5
+    for s in edited[turn_i + 1:]:
+        s['start'] += 5
+        s['end'] += 5
+    edited[-1]['end'] = 45  # the client's prefix-sum re-budget never overruns
+    other = turn_i + 1 if turn_i + 1 < len(edited) else turn_i - 1
+    edited[other]['activity'] = 'My hand-written independent task.'
+
+    r = client.post('/compiler/regenerate', json={**body, 'slot_index': turn_i, 'slots': edited})
+    assert r.status_code == 200, r.text
+    out = r.json()['slots']
+    assert out[turn_i]['end'] - out[turn_i]['start'] == edited[turn_i]['end'] - edited[turn_i]['start']
+    assert [(s['start'], s['end']) for s in out] == [(s['start'], s['end']) for s in edited]
+    assert out[other]['activity'] == 'My hand-written independent task.'
+    assert out[-1]['end'] == 45
+
+
+def test_regenerate_refuses_non_turn_and_broken_timelines(client):
+    body, slots = _compile_two_grade(client)
+    turn_i = next(i for i, s in enumerate(slots) if s['kind'] == 'turn')
+
+    # the opening is whole-class — not a section you regenerate alone
+    r = client.post('/compiler/regenerate', json={**body, 'slot_index': 0, 'slots': slots})
+    assert r.status_code == 422
+    assert any('teacher-turn' in e for e in r.json()['detail'])
+
+    # out-of-range section
+    r = client.post('/compiler/regenerate', json={**body, 'slot_index': 99, 'slots': slots})
+    assert r.status_code == 422
+
+    # a timeline with a gap fails validation instead of returning a lying plan
+    import copy
+    broken = copy.deepcopy(slots)
+    broken[turn_i + 1]['start'] += 1
+    broken[turn_i + 1]['end'] += 1
+    r = client.post('/compiler/regenerate', json={**body, 'slot_index': turn_i, 'slots': broken})
+    assert r.status_code == 422
+    assert any('contiguously' in e for e in r.json()['detail'])

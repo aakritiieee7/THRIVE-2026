@@ -263,18 +263,27 @@ def _extract_grades(query: str) -> list[str]:
     continues after it (commas, 'and', '&', optional repeated 'grade').
     """
     grades: list[str] = []
+    # First explicit 'Grade N' anchors the list; afterwards every 'Grade N'
+    # mention counts (repeated keyword included), while bare numbers only
+    # count next to a comma/'and' separator: "Grade 2, 3 and 4" is one list,
+    # "45 minutes" is not a grade.
     m = _GRADE_RE.search(query)
     if not m:
         return grades
     grades.append(m.group(1))
+    bare = re.compile(r'\s*(?:[,&]\s*|\s+and\s+|\s+or\s+)\s*(?:grade\s*)?([1-9]|1[0-2])(?!\d)', re.I)
     pos = m.end()
-    cont = re.compile(r'\s*(?:[,&]\s*|\s+and\s+|\s+or\s+)(?:grade\s*)?([1-9]|1[0-2])(?!\d)', re.I)
     while len(grades) < 6:
-        m2 = cont.match(query, pos)
-        if not m2 or m2.group(1) in grades:
+        m2 = bare.match(query, pos)
+        if m2 and m2.group(1) not in grades:
+            grades.append(m2.group(1))
+            pos = m2.end()
+            continue
+        m3 = _GRADE_RE.search(query, pos)
+        if not m3 or m3.group(1) in grades:
             break
-        grades.append(m2.group(1))
-        pos = m2.end()
+        grades.append(m3.group(1))
+        pos = m3.end()
     return grades
 
 
@@ -309,11 +318,32 @@ def extract_plan_request(query: str, context: Dict[str, Any] | None = None) -> D
         'grades': unique[:6],
         'minutes': int(minutes.group(1)) if minutes else 45,
         'subject': subj or (str(context.get('subjects') or '').split(',')[0].strip() or 'Mathematics'),
+        'message': query,
+        'context_topics': context.get('topics') or {},
     }
 
 
 def _fmt_clock(m: int) -> str:
     return f'{m // 60:02d}:{m % 60:02d}'
+
+
+def _clean_topic(raw: str) -> str:
+    """Trim the tail the topic regex overshoots with.
+
+    "Mathematics in 45 minutes" → "Mathematics"; "shapes, Grade 4 patterns"
+    → "shapes"; anything that still names another grade (the capture ran
+    across a conjunction) is discarded so we never invent a topic.
+    """
+    topic = (raw or '').strip(' .,-')
+    # cut at a following grade mention ("shapes, Grade 4 patterns")
+    topic = re.split(r'\s+grade\s*\d|\s*,\s*grade\s', topic, maxsplit=1, flags=re.I)[0]
+    # cut at minutes/time tails ("Mathematics in 45 minutes")
+    topic = re.split(r'\s+in\s+\d{1,3}\s*(?:minutes?|mins?)\b', topic, maxsplit=1, flags=re.I)[0]
+    # cut trailing connector words with nothing after them
+    topic = re.sub(r'[\s,]*(?:and|or|&|in|on|about|for|to|with)\s*$', '', topic, flags=re.I).strip(' .,-')
+    if re.search(r'\bgrade\b', topic, re.I) or re.fullmatch(r'\d{1,2}', topic or ''):
+        return ''
+    return topic
 
 
 def build_plan(req: Dict[str, Any], language: str = 'English') -> Dict[str, Any]:
@@ -329,13 +359,27 @@ def build_plan(req: Dict[str, Any], language: str = 'English') -> Dict[str, Any]
     from .solver import CompileInput, GradeRequest, InfeasiblePlan, compile_schedule
 
     subject = req['subject']
-    grades = [GradeRequest(grade=str(g), topic=f'{subject} practice for Grade {g}',
+    # Real topics wherever the teacher gave them: "Grade 2 numbers, Grade 3 shapes"
+    # in the message, or a grades/subjects topic map on the profile/context.
+    msg = str(req.get('message') or '')
+    ctx_topics = req.get('context_topics') or {}
+    topics: Dict[str, str] = {}
+    for g in req['grades']:
+        gs = str(g)
+        topic = ''
+        m = re.search(rf'grade\s*{gs}\s*(?:is\s+|on\s+|about\s+)?([A-Za-z][A-Za-z \-/]{{1,40}})', msg, re.I)
+        if m:
+            topic = _clean_topic(m.group(1))
+        if not topic and isinstance(ctx_topics, dict):
+            topic = str(ctx_topics.get(gs) or ctx_topics.get(f'Grade {gs}') or '').strip()
+        topics[gs] = topic or f'{subject} — Grade {gs}'
+    grades = [GradeRequest(grade=str(g), topic=topics[str(g)],
                            objective=f'Practise one {subject.lower()} idea suitable for Grade {g}')
               for g in req['grades']]
     inputs = {'grades': [g.grade for g in grades],
               'minutes': int(req['minutes']),
               'subject': subject,
-              'topics': {g.grade: g.topic for g in grades}}
+              'topics': topics}
     inp = CompileInput(subject=subject, medium='English', board='context',
                        minutes=int(req['minutes']), grades=grades)
     try:
@@ -365,7 +409,7 @@ def build_plan(req: Dict[str, Any], language: str = 'English') -> Dict[str, Any]
     lines += ['', 'Closing check (one prompt per grade):']
     lines += [f'• Grade {a["grade"]}: {a["prompt"]}' for a in result['assessments']]
     lines += ['', 'Learning goals above are generated from your request — confirm each against '
-                  'your official syllabus before class. Save the full timeline in Curriculum Studio.']
+                  'your official syllabus before class.']
     return {'reply': '\n'.join(lines),
             'sources': result['sources'] + [{'title': 'THRIVE schedule constraints', 'org': 'THRIVE',
                                              'why': 'schedule generated by the constraint compiler'}],
@@ -374,13 +418,15 @@ def build_plan(req: Dict[str, Any], language: str = 'English') -> Dict[str, Any]
 
 
 def plan_reply(req: Dict[str, Any], language: str = 'English') -> Dict[str, Any]:
-    """Chat-facing plan reply — a thin wrapper over build_plan().
+    """Plan reply for chat/bridge/WhatsApp — build_plan() plus its raw result.
 
-    Keeps the exact {reply, sources, mode} contract the web bridge, web chat
-    and WhatsApp webhook already rely on (regression-tested in test_assistant).
+    Returns {reply, sources, mode} (the contract every caller reads) plus
+    compiled/inputs when available, so channels can save the real schedule.
+    Extra keys are dropped by the ChatOut response model; they never leak.
     """
     out = build_plan(req, language)
-    return {'reply': out['reply'], 'sources': out['sources'], 'mode': out['mode']}
+    return {'reply': out['reply'], 'sources': out['sources'], 'mode': out['mode'],
+            'compiled': out.get('compiled'), 'inputs': out.get('inputs')}
 
 
 def respond_plan(query: str, context: Dict[str, Any] | None = None,

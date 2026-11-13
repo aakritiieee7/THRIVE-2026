@@ -2,6 +2,8 @@ import {useEffect,useState} from 'react'
 import Layout from '../components/Layout'
 import {useStoredState} from '../lib/storage'
 import {api,getToken} from '../lib/api'
+import {fetchPlans,mergePlans,normalizePlan,savePlan} from '../lib/plans'
+import Link from 'next/link'
 import {IconSearch} from '../components/Icons'
 
 export default function Resources(){
@@ -9,28 +11,38 @@ export default function Resources(){
  const [filter,setFilter]=useState('All'),[busy,setBusy]=useState(false)
  const [query,setQuery]=useState('')
 
- // Server plans are the source of truth when signed in; merge with local.
+ // Server plans are the source of truth when signed in (guest session too);
+ // merge over the local mirror through the shared normalizer.
  useEffect(()=>{
-  if(!getToken())return
   ;(async()=>{
-   try{
-    const rows=await api.get<any[]>('/api/plans')
-    if(Array.isArray(rows)&&rows.length){
-     const mapped=rows.map(r=>({id:r.id,title:r.title,subject:r.subject,medium:r.medium,board:r.board,minutes:r.minutes,
-      grades:r.payload?.grades||[],schedule:r.payload?.schedule||[],assessments:r.payload?.assessments||[],
-      savedAt:r.created_at,server:true}))
-     const ids=new Set(mapped.map(m=>m.id))
-     setPlans([...mapped,...plans.filter(p=>!ids.has(p.id))])
-    }
-   }catch{}
+   const rows=await fetchPlans()
+   if(rows.length) setPlans(mergePlans(plans,rows))
   })()
  },[])
 
- async function remove(id:number){
+ async function remove(id:any){
   if(!confirm('Delete this saved lesson plan?'))return
   setPlans(plans.filter(p=>p.id!==id))
   if(getToken()&&typeof id==='number'&&id<1000000000000){try{await api.delete(`/api/plans/${id}`)}catch{}}
  }
+
+ // Open in Curriculum Studio: the studio hydrates itself from ?open=<id>.
+ function openPlan(p:any){
+  sessionStorage.setItem('thrive:openPlan',JSON.stringify(p))
+  window.location.href=`/compiler?open=${encodeURIComponent(String(p.id))}`
+ }
+
+ // Duplicate = save an identical copy under a new title (and a new server row).
+ async function duplicate(p:any){
+  const item=normalizePlan({...p,title:`${p.title||'Lesson plan'} (copy)`,savedAt:new Date().toISOString()})
+  if(!item)return
+  const saved=await savePlan(item)
+  setPlans([saved,...plans.filter(x=>x.id!==saved.id)])
+  toast('Duplicated — a copy is in your saved plans')
+ }
+
+ function toast(t:string){ setBusy(false); const el=document.createElement('div'); el.className='toast'; el.setAttribute('aria-live', 'polite'); el.textContent=t;
+  document.body.appendChild(el); setTimeout(()=>{el.remove()},2600) }
 
  function download(p:any){
   const blob=new Blob([JSON.stringify(p,null,2)],{type:'application/json'})
@@ -60,14 +72,18 @@ export default function Resources(){
    </div>
    {items.length?items.map(p=><div className="resource-row" key={p.id}>
     <div><div className="resource-name">{p.title||'Lesson plan'}</div>
-     <small>{p.grades?.length?p.grades.map((g:any)=>`Grade ${g.grade}: ${g.topic}`).join(' · '):'Classroom plan'}</small></div>
+     <small>{p.grades?.length?p.grades.map((g:any)=>`Grade ${g.grade}${g.topic?`: ${g.topic}`:''}`).join(' · '):p.draft?'Assistant draft':'Classroom plan'}</small></div>
     <span>{p.subject||'Teaching plan'}<small>{p.minutes||40} minutes</small></span>
     <span className="muted">{p.savedAt?new Date(p.savedAt).toLocaleDateString():'Saved'}</span>
-    <div className="row"><button className="btn btn-small" onClick={()=>download(p)} aria-label="Download">↓</button>
+    <div className="row">
+     <button className="btn btn-small" onClick={()=>openPlan(p)} aria-label="Open in Curriculum Studio">Open</button>
+     <button className="btn btn-small" onClick={()=>duplicate(p)} aria-label="Duplicate">Copy</button>
+     <button className="btn btn-small" onClick={()=>download(p)} aria-label="Download">↓</button>
      <button className="btn btn-small" onClick={()=>remove(p.id)} aria-label="Delete">×</button></div>
    </div>):<div className="empty">{query||filter!=='All'
-    ?'No saved plans match this search. Clear the search or choose <b>All</b> to see everything.'
-    :'No saved resources yet. Generate a classroom schedule and select <b>Save plan</b> to keep it here.'}</div>}
+    ?<>No saved plans match this search. Clear the search or choose <b>All</b> to see everything.</>
+    :<>No saved resources yet. Generate a classroom schedule and select <b>Save plan</b> to keep it here.
+      <Link href="/compiler" className="btn btn-primary btn-small" style={{marginTop:12}}>Create a plan</Link></>}</div>}
   </section>
   <div className="notice" style={{marginTop:14}}>{getToken()
    ?'Plans are stored in your THRIVE account and mirrored on this device for offline access.'

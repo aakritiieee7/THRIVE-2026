@@ -6,7 +6,7 @@ import { IllEmpty, IllHero } from '../components/Illustrations'
 import { IconAlert, IconArrow, IconCheck, IconPlus, IconSave } from '../components/Icons'
 import { api, ApiError } from '../lib/api'
 import { ensureGuest, getGuest, guestHeaders } from '../lib/guest'
-import { useStoredState } from '../lib/storage'
+import { useStoredState, EMPTY_PROFILE } from '../lib/storage'
 
 /**
  * "Try THRIVE" — guest access. No account, no saved teacher data.
@@ -40,6 +40,9 @@ export default function Try() {
   const [busy, setBusy] = useState(false)
   const [remaining, setRemaining] = useState<number | null>(null)
   const [drafts, setDrafts] = useStoredState<Draft[]>('guest-drafts-local', [])
+  // Any teaching context already on this device (from Guided setup or the
+  // profile) rides along with guest asks — never invented, only what's saved.
+  const [profile] = useStoredState<any>('profile', EMPTY_PROFILE)
   const [serverDrafts, setServerDrafts] = useState<Draft[]>([])
   const [toast, setToast] = useState('')
   const [saveOpen, setSaveOpen] = useState(false)
@@ -72,7 +75,10 @@ export default function Try() {
     setMsgs(next); setText(''); setBusy(true)
     try {
       const r = await api.post<any>('/api/guest/ask',
-        { message: q.trim(), language, context: {} }, guestHeaders())
+        { message: q.trim(), language, context: {
+          state: profile.state, board: profile.board, medium: profile.medium,
+          grades: profile.grades, subjects: profile.subjects,
+        } }, guestHeaders())
       setRemaining(r.asks_remaining ?? null)
       setMsgs(m => [...m, { id: Date.now() + 1, role: 'thrive', text: r.reply, sources: r.sources || [], mode: r.mode, quota: r.asks_remaining }])
     } catch (err: any) {
@@ -81,7 +87,7 @@ export default function Try() {
           sources: [{ title: 'Guest limit', org: 'THRIVE', why: 'quota' }] }])
       } else {
         setMsgs(m => [...m, { id: Date.now() + 1, role: 'thrive',
-          text: `I could not reach THRIVE right now (${err?.message || 'network error'}). Try again in a moment.` }])
+          text: `I could not reach THRIVE right now (${err?.message || 'please try again in a moment'}). Try again in a moment.` }])
       }
     } finally { setBusy(false) }
   }
@@ -164,7 +170,7 @@ export default function Try() {
                 )}
               </div>
             ))}
-            {busy && <div className="bubble">THRIVE is thinking…</div>}
+            {busy && <div className="bubble" aria-live="polite">THRIVE is thinking…</div>}
           </div>
           <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 10 }}>
             {SUGGESTED.map(s => (
@@ -241,7 +247,7 @@ export default function Try() {
         </aside>
       </div>
 
-      {toast && <div className="toast">{toast}</div>}
+      {toast && <div className="toast" aria-live="polite">{toast}</div>}
     </div>
   )
 }

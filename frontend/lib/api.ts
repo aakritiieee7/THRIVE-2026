@@ -35,14 +35,16 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     res = await fetch(path, { ...init, headers })
   } catch {
-    throw new ApiError(0, 'Backend unavailable — working locally on this device.')
+    throw new ApiError(0, 'THRIVE is unreachable right now — working on this device for now.')
   }
   const text = await res.text()
   let data: any = null
   try { data = text ? JSON.parse(text) : null } catch { data = text }
   if (!res.ok) {
     const detail = data && typeof data === 'object' ? data.detail : undefined
-    let message = `Request failed (${res.status})`
+    let message = res.status >= 500
+      ? 'THRIVE is briefly unavailable — please try again in a moment.'
+      : `Request failed (${res.status})`
     if (typeof detail === 'string') message = detail
     else if (Array.isArray(detail)) message = detail.join(' ')
     else if (detail && typeof detail === 'object') message = Object.values(detail as any)[0] as string

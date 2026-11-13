@@ -3,7 +3,9 @@ from sqlalchemy.orm import Session
 
 from .auth import create_token, get_current_user, hash_password, verify_password
 from .db import get_db, now
-from .models import Teacher
+from .models import (AssistantMessage, CommunityHelpful, CommunityPost,
+                     CommunityReply, RemindTask, Teacher, TrainingBookmark,
+                     TrainingProgress, UpdateBookmark, WhatsAppLink, WhatsAppPairing)
 from .schemas import ProfileUpdate, TeacherCreate, TeacherLogin, TeacherOut, TokenResp
 
 router = APIRouter()
@@ -55,3 +57,33 @@ def update_me(
     db.commit()
     db.refresh(teacher)
     return TeacherOut(id=teacher.id, name=teacher.name, email=teacher.email, profile=teacher.profile or {})
+
+
+# Account deletion. Every table referenced by a plain foreign key (PRAGMA
+# foreign_keys=ON, no ORM cascade) is emptied explicitly first, and a teacher's
+# own posts are taken down too — replies on them hang off the post, replies
+# they wrote elsewhere hang off them. Lesson plans cascade in the ORM; guest
+# plans (teacher_id NULL) are untouched.
+@router.delete('/me')
+def delete_me(
+    teacher: Teacher = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    teacher_id = teacher.id
+    # Helpful votes reference both the teacher and posts (on this account and
+    # others'), so they go before any post row disappears.
+    db.query(CommunityHelpful).filter(CommunityHelpful.teacher_id == teacher_id)\
+       .delete(synchronize_session=False)
+    db.query(CommunityReply).filter(CommunityReply.teacher_id == teacher_id)\
+       .delete(synchronize_session=False)
+    db.query(CommunityPost).filter(CommunityPost.teacher_id == teacher_id)\
+       .delete(synchronize_session=False)
+    for model in (TrainingProgress, TrainingBookmark, UpdateBookmark,
+                  AssistantMessage, WhatsAppLink, WhatsAppPairing, RemindTask):
+        db.query(model).filter(model.teacher_id == teacher_id)\
+           .delete(synchronize_session=False)
+    db.delete(teacher)
+    db.commit()
+    return {'status': 'deleted', 'teacher_id': teacher_id}
+
+

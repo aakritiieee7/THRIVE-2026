@@ -1,11 +1,11 @@
 import {useEffect,useMemo,useState} from 'react'
 import Layout from '../components/Layout'
-import {seedUpdates,useStoredState} from '../lib/storage'
+import {curriculumUpdates,useStoredState,EMPTY_PROFILE} from '../lib/storage'
 import {api,getToken} from '../lib/api'
 
 export default function Updates(){
  const [saved,setSaved]=useStoredState<string[]>('bookmarked-updates',[])
- const [profile]=useStoredState<any>('profile',{grades:'',subjects:''})
+ const [profile]=useStoredState<any>('profile',EMPTY_PROFILE)
  const [query,setQuery]=useState(''),[category,setCategory]=useState('All')
  const cats=['All','Training','Policy','Resources']
 
@@ -30,7 +30,7 @@ export default function Updates(){
      /literacy|numeracy|multi-grade|inclusive|classroom|foundational/i.test(hay)
   }
   const passes=(x:any)=>(category==='All'||x.category===category)&&`${x.title} ${x.org} ${x.summary}`.toLowerCase().includes(q)
-  const pool=seedUpdates.filter(passes)
+  const pool=curriculumUpdates.filter(passes)
   return [...pool.filter(matched),...pool.filter(x=>!matched(x))]
  },[category,query,relevance])
 
@@ -88,7 +88,7 @@ export default function Updates(){
   </section>
   <div className="panel" style={{marginTop:14}}>
    <div className="panel-title"><div><h2>Saved updates</h2><p>{getToken()?'Synced to your account':'Bookmarks stay on this device'}</p></div></div>
-   {saved.length?<div className="row" style={{flexWrap:'wrap'}}>{saved.map(id=>{const item=seedUpdates.find(x=>x.id===id);return item?<span className="tag" key={id}>{item.title}</span>:null})}</div>:<div className="muted" style={{fontSize:10}}>Save an item above to find it again here.</div>}
+   {saved.length?<div className="row" style={{flexWrap:'wrap'}}>{saved.map(id=>{const item=curriculumUpdates.find(x=>x.id===id);return item?<span className="tag" key={id}>{item.title}</span>:null})}</div>:<div className="muted" style={{fontSize:10}}>Save an item above to find it again here.</div>}
   </div>
  </Layout>
 }

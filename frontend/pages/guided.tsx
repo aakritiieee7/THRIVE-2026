@@ -1,8 +1,9 @@
 import {useEffect,useMemo,useState} from 'react'
 import Link from 'next/link'
 import Layout from '../components/Layout'
-import {useStoredState} from '../lib/storage'
+import {useStoredState, EMPTY_PROFILE} from '../lib/storage'
 import {api,getToken} from '../lib/api'
+import {savePlan} from '../lib/plans'
 import {fetchChapters,matchChapter,SHARED_TOPICS,SubjectChapters} from '../lib/curriculum'
 import {IconCheck,IconClock} from '../components/Icons'
 
@@ -40,7 +41,7 @@ const WHY=[
 ]
 
 export default function Guided(){
- const [profile,setProfile]=useStoredState<any>('profile',{name:'',state:'Bihar',board:'Bihar SCERT',medium:'Hindi + English',grades:'3, 5',subjects:'Mathematics'})
+ const [profile,setProfile]=useStoredState<any>('profile',EMPTY_PROFILE)
  const [stage,setStage]=useState(1)
  const [subject,setSubject]=useState('Mathematics')
  const [minutes,setMinutes]=useState(45)
@@ -98,15 +99,16 @@ export default function Guided(){
 
  async function run(){
   setError('');setPlan(null)
+  if(!profile.state||!profile.board||!profile.medium){setError('Finish Stage 1 first: choose your state, board and medium of instruction.');setStage(1);return}
   if(!feasibility.ok){setError('Fix the checks above before generating.');return}
   setBusy(true)
   try{
-   const body={subject,medium:profile.medium||'English',board:profile.board||'NCERT',minutes,materials,transition_buffer:buffer,
+   const body={subject,medium:profile.medium,board:profile.board,minutes,materials,transition_buffer:buffer,
     grades:grades.map(g=>({grade:g.grade,topic:g.topic,objective:g.objective,shared_group:g.shared||null}))}
    const r=await api.post('/api/compiler/run',body)
    setPlan(r as PlanResult)
   }catch(err:any){
-   setError(err?.message||'Could not reach the compiler service. Make sure the backend is running and retry.')
+   setError(err?.message||'Could not build the schedule right now — check your connection and try again.')
   }finally{setBusy(false)}
  }
 
@@ -123,18 +125,16 @@ export default function Guided(){
    }catch{}
   }
   const item={title:`${subject}: ${grades.map(g=>`Grade ${g.grade}`).join(' & ')}`,grades,minutes,subject,
-   medium:profile.medium,board:profile.board,materials,schedule:plan.slots,assessments:plan.assessments,savedAt:new Date().toISOString()}
-  try{
-   const r=await api.post<any>('/api/plans',{title:item.title,subject,medium:item.medium,board:item.board,minutes,payload:item})
-   setSavedPlans([{...item,id:r.id,server:true},...savedPlans])
-  }catch{
-   setSavedPlans([{...item,id:Date.now()},...savedPlans])
-  }
+   medium:profile.medium,board:profile.board,materials,buffer,schedule:plan.slots,
+   assessments:plan.assessments,sources:plan.sources,savedAt:new Date().toISOString()}
+  const stored=await savePlan(item)
+  setSavedPlans([stored,...savedPlans.filter(p=>p.id!==stored.id)])
   setToast('Saved to My resources');setTimeout(()=>setToast(''),2400)
  }
 
- const canAdvance=[true,true,grades.every(g=>g.topic.trim()&&g.objective.trim()),feasibility.ok,true]
+ const canAdvance=[!!(profile.state&&profile.board&&profile.medium),true,grades.every(g=>g.topic.trim()&&g.objective.trim()),feasibility.ok,true]
  const go=(n:number)=>{
+  if(n>1&&stage===1&&!canAdvance[0])return  // never skip past an unfinished Stage 1
   // Leaving Stage 1 persists the teaching context to the account (when signed
   // in) so the assistant and compiler see it — local storage always has it.
   if(n>1&&stage===1&&getToken()){
@@ -176,12 +176,14 @@ export default function Guided(){
     {/* ---------- Stage 1: teaching context ---------- */}
     {stage===1&&<div>
      <div className="form-grid">
-      <div className="field"><label>State</label><select value={profile.state} onChange={e=>setProfile({...profile,state:e.target.value})}>{['Bihar','Delhi','Uttar Pradesh','Madhya Pradesh','Rajasthan','Other'].map(x=><option key={x}>{x}</option>)}</select></div>
-      <div className="field"><label>Board / curriculum</label><select value={profile.board} onChange={e=>setProfile({...profile,board:e.target.value})}>{['Bihar SCERT','NCERT','State curriculum — other','Other'].map(x=><option key={x}>{x}</option>)}</select></div>
-      <div className="field"><label>Medium of instruction</label><select value={profile.medium} onChange={e=>setProfile({...profile,medium:e.target.value})}>{['Hindi + English','Hindi','English','Other'].map(x=><option key={x}>{x}</option>)}</select></div>
+      <div className="field"><label>State</label><select value={profile.state} onChange={e=>setProfile({...profile,state:e.target.value})}><option value="">Select a state…</option>{['Bihar','Delhi','Uttar Pradesh','Madhya Pradesh','Rajasthan','Other'].map(x=><option key={x}>{x}</option>)}</select></div>
+      <div className="field"><label>Board / curriculum</label><select value={profile.board} onChange={e=>setProfile({...profile,board:e.target.value})}><option value="">Select a board…</option>{['Bihar SCERT','NCERT','State curriculum — other','Other'].map(x=><option key={x}>{x}</option>)}</select></div>
+      <div className="field"><label>Medium of instruction</label><select value={profile.medium} onChange={e=>setProfile({...profile,medium:e.target.value})}><option value="">Select a medium…</option>{['Hindi + English','Hindi','English','Other'].map(x=><option key={x}>{x}</option>)}</select></div>
       <div className="field"><label>Assistant reply language</label><select value={profile.language||'English'} onChange={e=>setProfile({...profile,language:e.target.value})}><option>English</option><option>Hindi</option></select></div>
      </div>
-     <div className="notice" style={{marginTop:12}}><b>Example in this walkthrough:</b> Bihar · Bihar SCERT · Hindi + English — the same values you see pre-filled above.</div>
+     {!profile.state||!profile.board||!profile.medium
+      ? <div className="notice" style={{marginTop:12}}>Choose your state, board and medium to continue — these tailor every suggestion to your classroom. Nothing is pre-filled on your behalf.</div>
+      : <div className="notice" style={{marginTop:12}}>Saved as your teaching context{getToken()?` and synced to your account`:''} — you can change it any time from My profile.</div>}
     </div>}
 
     {/* ---------- Stage 2: the room ---------- */}
@@ -264,7 +266,7 @@ export default function Guided(){
     {/* ---------- Stage 5: generate + timeline ---------- */}
     {stage===5&&<div>
      {!plan&&<div>
-      {error&&<div className="notice" style={{background:'#fbefec',borderColor:'#f2d8d0',color:'#925e4d',marginBottom:12}}>{error}</div>}
+      {error&&<div className="notice" role="alert" style={{background:'#fbefec',borderColor:'#f2d8d0',color:'#925e4d',marginBottom:12}}>{error}</div>}
       <button className="btn btn-primary" onClick={run} disabled={busy}>{busy?'Compiling schedule…':'Generate coordinated plan'}</button>
       <div className="muted" style={{fontSize:9.5,marginTop:9}}>Runs the live constraint compiler — the same engine the Curriculum Studio uses.</div>
      </div>}
@@ -307,7 +309,7 @@ export default function Guided(){
        {plan.assessments.map(a=><div className="notice" key={a.grade}><b>Grade {a.grade} · assessment</b><div style={{marginTop:4}}>{a.prompt}</div><div style={{marginTop:6,color:'#829087'}}>{a.follow_up}</div></div>)}
       </div>
       <div className="step-foot">
-       <span className="muted">Engine: {plan.engine} · {plan.slots.length} stages · exact fit to {minutes} min</span>
+       <span className="muted">{plan.slots.length} stages · fits your {minutes} min exactly · feasibility checked</span>
        <div className="row">
         <button className="btn btn-small" onClick={()=>{setPlan(null);setStage(3)}}>← Adjust goal</button>
         <button className="btn btn-small btn-primary" onClick={save}>Save plan</button>
@@ -329,6 +331,6 @@ export default function Guided(){
     </div>
    </section>
   </div>
-  {toast&&<div className="toast">✓ &nbsp;{toast}</div>}
+  {toast&&<div className="toast" aria-live="polite">✓ &nbsp;{toast}</div>}
  </Layout>
 }
