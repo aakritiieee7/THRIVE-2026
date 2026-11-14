@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 import os
+import time
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
@@ -11,7 +12,7 @@ from sqlalchemy.orm import Session
 from .api_compiler import router as compiler_router
 from .api_auth import router as auth_router
 from .auth import get_current_user, get_optional_user
-from .db import get_db, now
+from .db import Base, SessionLocal, get_db, now
 from .models import (AssistantMessage, CommunityHelpful, CommunityPost,
                      CommunityReply, LessonPlan, RemindTask, Teacher,
                      TrainingBookmark, TrainingProgress, UpdateBookmark)
@@ -801,19 +802,56 @@ def _extract_wa_status(payload: Dict[str, Any]) -> Dict[str, str]:
         return {}
 
 
+# --- WhatsApp webhook de-duplication -------------------------------------
+# Meta retries a webhook until it gets a 2xx, so a slow reply means the same
+# message arrives several times — and the teacher would get duplicate answers
+# and duplicate saved plans. Remember recently handled message ids with a TTL.
+#
+# In-process memory is enough for the single-machine setup this ships with.
+# On multiple workers each one would keep its own set, so duplicates could
+# still slip through; a shared store (Redis) is the drop-in upgrade and is
+# already in docker-compose for the full stack.
+_WA_SEEN: Dict[str, float] = {}
+_WA_SEEN_TTL = 10 * 60          # seconds a message id is remembered
+_WA_SEEN_MAX = 5000             # hard cap so memory cannot grow unbounded
+
+
+def _wa_seen_or_mark(message_id: str) -> bool:
+    """True when this id was already handled. Otherwise record it and False."""
+    if not message_id:
+        return False
+    now_ts = time.time()
+    # Drop expired entries when the map grows (cheap, amortised).
+    if len(_WA_SEEN) > _WA_SEEN_MAX:
+        for k, ts in list(_WA_SEEN.items()):
+            if now_ts - ts > _WA_SEEN_TTL:
+                del _WA_SEEN[k]
+    ts = _WA_SEEN.get(message_id)
+    if ts is not None and now_ts - ts <= _WA_SEEN_TTL:
+        return True
+    _WA_SEEN[message_id] = now_ts
+    return False
+
+
 def _extract_wa_message(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """Pull {from, text, language, display_name} out of a Meta webhook envelope.
+    """Pull {from, text, language, display_name, id, kind} out of a Meta envelope.
 
     Language is honoured when the caller states it (e.g. a test harness or a
     client that pins it); otherwise we infer it from the message text itself —
     Devanagari means Hindi — so a teacher simply typing in their own language
     gets a reply in that language.
+
+    `id` is Meta's wamid, used to drop retried deliveries. `kind` is 'text'
+    for anything handled by the command router, and 'audio' for a voice note
+    (which the webhook transcribes before routing).
     """
     try:
         entry = payload['entry'][0]
         change = entry['changes'][0]['value']
         msg = change['messages'][0]
         sender = msg.get('from', '')
+        message_id = str(msg.get('id') or '')
+        kind = 'text' if not (msg.get('audio') or msg.get('voice')) else 'audio'
         # text body, or button reply, or interactive list reply
         text = (msg.get('text') or {}).get('body') \
             or (msg.get('button') or {}).get('text') \
@@ -824,9 +862,12 @@ def _extract_wa_message(payload: Dict[str, Any]) -> Dict[str, Any]:
         explicit = str(payload.get('language') or '').strip()
         lang = explicit if explicit else detect_language(text)
         display_name = str((msg.get('profile') or {}).get('name') or '').strip()
-        return {'from': sender, 'text': text, 'language': lang, 'display_name': display_name}
+        media_id = str(((msg.get('audio') or {}).get('id')) or '')
+        return {'from': sender, 'text': text, 'language': lang, 'display_name': display_name,
+                'id': message_id, 'kind': kind, 'media_id': media_id}
     except (KeyError, IndexError, TypeError):
-        return {'from': '', 'text': '', 'language': 'English', 'display_name': ''}
+        return {'from': '', 'text': '', 'language': 'English', 'display_name': '',
+                'id': '', 'kind': 'text', 'media_id': ''}
 
 
 def _send_wa_text(to: str, body: str) -> bool:
@@ -853,6 +894,123 @@ def _send_wa_text(to: str, body: str) -> bool:
 # WhatsApp account linking — a signed-in teacher mints a one-time code on the
 # web and texts it to the bot; the webhook redeems it. Unlink is web-only.
 # ---------------------------------------------------------------------------
+
+def _record_wa_turn(db: Session, inbound: Dict[str, Any], result: Dict[str, Any]) -> None:
+    """Keep the last few exchanges for the /demo page (masked phone, never full).
+
+    Best-effort: a failure here must never break the reply the teacher gets.
+    The table is trimmed to the newest 50 rows each time.
+    """
+    try:
+        from .models import WhatsAppTurn
+
+        db.add(WhatsAppTurn(
+            phone_masked=whatsapp_links.phone_masked(inbound['from']),
+            inbound=str(inbound.get('text') or '')[:2000],
+            reply=str(result.get('reply') or '')[:4000],
+            action=str(result.get('action') or '')[:32],
+            language=str(inbound.get('language') or 'English')[:16],
+            created_at=now(),
+        ))
+        db.commit()
+        # Trim: keep the newest 50 (SQLite has no cheap OFFSET-delete).
+        stale = (db.query(WhatsAppTurn.id)
+                   .order_by(WhatsAppTurn.id.desc())
+                   .offset(50).all())
+        if stale:
+            db.query(WhatsAppTurn).filter(
+                WhatsAppTurn.id.in_([r[0] for r in stale])).delete(synchronize_session=False)
+            db.commit()
+    except Exception:
+        db.rollback()
+
+
+@router.get('/assistant/whatsapp/log')
+def whatsapp_log(limit: int = 10):
+    """The last few WhatsApp exchanges, for the /demo page.
+
+    Public (no auth) because it backs a presentation screen — so it exposes
+    only what is already public-safe: the masked phone, the teacher's own
+    question text, and THRIVE's reply. No tokens, no full numbers.
+    """
+    from .models import WhatsAppTurn
+
+    db: Session = SessionLocal()
+    try:
+        # A database created before this table existed would raise
+        # OperationalError; the demo page should show "no messages yet"
+        # rather than a 500, so the table is created on first use.
+        Base.metadata.create_all(bind=db.get_bind(), tables=[WhatsAppTurn.__table__])
+        rows = (db.query(WhatsAppTurn)
+                  .order_by(WhatsAppTurn.id.desc())
+                  .limit(max(1, min(limit, 50))).all())
+        return [{'phone': r.phone_masked, 'inbound': r.inbound, 'reply': r.reply,
+                 'action': r.action, 'language': r.language, 'at': r.created_at}
+                for r in rows]
+    except Exception:
+        db.rollback()
+        return []
+    finally:
+        db.close()
+
+
+@router.get('/assistant/whatsapp/qr')
+def whatsapp_qr():
+    """A QR code that opens a chat with the THRIVE bot, as SVG.
+
+    Rendered here rather than in the browser so the demo page needs no
+    client-side QR library. `segno` is pure Python with no dependencies of its
+    own, which keeps the backend image small.
+    """
+    digits = ''.join(ch for ch in _DISPLAY_NUMBER if ch.isdigit())
+    if not digits:
+        raise HTTPException(status_code=404, detail='No WhatsApp number configured.')
+    link = f'https://wa.me/{digits}'
+    try:
+        import io
+
+        import segno
+    except ImportError:
+        raise HTTPException(status_code=501, detail='QR rendering is unavailable.')
+    buf = io.BytesIO()
+    # error='m' tolerates a slightly smudged print without bloating the code.
+    segno.make(link, error='m').save(buf, kind='svg', scale=6, border=2,
+                                     dark='#1B3528', light='#FFFFFF')
+    return Response(content=buf.getvalue(), media_type='image/svg+xml',
+                    headers={'Cache-Control': 'public, max-age=3600'})
+
+
+@router.post('/assistant/whatsapp/send')
+def whatsapp_send(payload: Dict[str, Any],
+                  teacher: Teacher = Depends(get_current_user),
+                  db: Session = Depends(get_db)):
+    """Send a compiled plan (or any reply) to the teacher's linked number.
+
+    Only sends to the number already bound to THIS account — the body never
+    names a recipient, so a signed-in teacher cannot use THRIVE to message
+    arbitrary numbers.
+
+    Returns {sent, reason, phone?}:
+      sent=True            — Meta accepted the message
+      sent=False, no-link  — account has no WhatsApp number yet; the client
+                             falls back to a wa.me hand-off
+      sent=False, failed   — Meta refused or credentials are missing
+    `phone` is the masked number, for display only.
+    """
+    # Validate the body before anything else: an empty message is a client
+    # bug regardless of whether a number is linked, and returning "no-link"
+    # for it would hide that.
+    text = str(payload.get('text') or '').strip()
+    if not text:
+        raise HTTPException(status_code=422, detail='Nothing to send.')
+    link = whatsapp_links.get_link(teacher.id, db)
+    if link is None:
+        return {'sent': False, 'reason': 'no-link'}
+    sent = _send_wa_text(link.phone, text)
+    return {'sent': sent,
+            'reason': 'sent' if sent else 'failed',
+            'phone_masked': whatsapp_links.phone_masked(link.phone)}
+
 
 @router.post('/assistant/whatsapp/link-code', response_model=LinkCodeOut)
 def whatsapp_link_code(teacher: Teacher = Depends(get_current_user),
@@ -912,6 +1070,9 @@ def whatsapp_status(db: Session = Depends(get_db)) -> Dict[str, Any]:
         'webhook_path': '/assistant/whatsapp',
         'verify_token_set': bool(_VERIFY_TOKEN),
         'signing': signing,
+        # The bot's own public number — shown as a QR/wa.me link on /demo.
+        # It is the business line, not a teacher's personal number.
+        'wa_number': _DISPLAY_NUMBER,
         'linked_senders': linked_senders,
         'mode': 'live-send' if configured else 'simulation',
         'note': note,
@@ -961,6 +1122,11 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
         return {'channel': 'whatsapp', 'kind': 'status', 'acknowledged': True, **status}
 
     inbound = _extract_wa_message(payload)
+    # Meta retries until acknowledged; acting twice would answer twice and
+    # save the same plan twice. Acknowledge a repeat without doing the work.
+    if _wa_seen_or_mark(inbound['id']):
+        return {'channel': 'whatsapp', 'kind': 'duplicate', 'id': inbound['id'],
+                'acknowledged': True}
     if not inbound['text']:
         # Some other change type (user profile, etc.) — acknowledge silently.
         return {'status': 'ignored', 'reason': 'no inbound text message'}
@@ -984,6 +1150,7 @@ async def whatsapp_webhook(request: Request, db: Session = Depends(get_db)):
                                      phone=inbound['from'])
     if inbound['from']:
         _send_wa_text(inbound['from'], result['reply'])
+        _record_wa_turn(db, inbound, result)
     return {
         'channel': 'whatsapp',
         'kind': 'message',

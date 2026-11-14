@@ -126,7 +126,15 @@ See [.env.example](.env.example). Notable keys:
 | `DATABASE_URL` | Postgres in docker-compose; defaults to SQLite (`backend/thrive.db`) |
 | `THRIVE_SECRET` | JWT signing secret — **must be set in shared environments** |
 | `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` | Optional OpenAI-compatible chat model for the assistant; without a key the grounded local fallback runs |
-| `BACKEND_URL` | Frontend API proxy target (dev: `http://localhost:8000`) |
+| `BACKEND_URL` | **Required.** Frontend API proxy target. Dev: `http://127.0.0.1:8000`. On Vercel set it to the backend's public origin, or every `/api/*` call 502s. |
+| `WHATSAPP_TOKEN` | Meta Cloud API access token (long string — easy to truncate) |
+| `WHATSAPP_PHONE_ID` | Meta "Phone Number ID" (numeric, **not** the phone number) |
+| `WHATSAPP_VERIFY_TOKEN` | Any string you pick; must match what you type into Meta's webhook form |
+| `WHATSAPP_APP_SECRET` | Meta App Secret — enables `X-Hub-Signature-256` verification |
+| `WHATSAPP_DISPLAY_NUMBER` | The bot's public number, shown as a QR/wa.me link on `/demo` |
+
+WhatsApp setup, webhook registration, ngrok testing and the Twilio fallback:
+[docs/WHATSAPP_SETUP.md](docs/WHATSAPP_SETUP.md).
 
 ## Architecture
 

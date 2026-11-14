@@ -44,10 +44,48 @@ def _tokenize(text: str) -> List[str]:
     return re.findall(r'[a-z0-9ऀ-ॿ]{3,}', text.lower())
 
 
+# Devanagari topic words → the English tokens the corpus is written in.
+# The bundled corpus is English-only, so a Hindi question used to score zero
+# and fall through to "I have no verified source for this question" even for
+# topics that ARE covered (addition, fractions, evaporation…). Translating the
+# few subject words before scoring lets Hindi questions reach the same sources.
+_HI_TOPIC: Dict[str, str] = {
+    'जोड़': 'addition', 'योग': 'addition', 'घटाना': 'subtraction', 'घटाव': 'subtraction',
+    'गुणा': 'multiplication', 'भाग': 'division', 'भिन्न': 'fraction', 'भिन्नों': 'fraction',
+    'संख्या': 'number', 'संख्याएँ': 'number', 'अंक': 'number', 'गिनती': 'counting',
+    'आकार': 'shape', 'आकृतियाँ': 'shape', 'ज्यामिति': 'geometry', 'माप': 'measurement',
+    'समय': 'time', 'पैसा': 'money', 'डेटा': 'data', 'ग्राफ': 'graph',
+    'गणित': 'math', 'जोर': 'addition',
+    'पढ़ना': 'reading', 'पठन': 'reading', 'भाषा': 'language', 'कहानी': 'story',
+    'वर्णमाला': 'alphabet', 'शब्द': 'word', 'लेखन': 'writing', 'साक्षरता': 'literacy',
+    'वाष्पीकरण': 'evaporation', 'पानी': 'water', 'जल': 'water', 'पौधे': 'plant',
+    'पौधा': 'plant', 'जानवर': 'animal', 'जीव': 'animal', 'परिवार': 'family',
+    'आवास': 'shelter', 'भोजन': 'food', 'स्वास्थ्य': 'health', 'पर्यावरण': 'environment',
+    'विज्ञान': 'science', 'हवा': 'air', 'ध्वनि': 'sound', 'प्रकाश': 'light',
+    'चुम्बक': 'magnet', 'यातायात': 'transport', 'समुदाय': 'community',
+    'कक्षा': 'grade', 'बच्चे': 'learner', 'छात्र': 'learner',
+    'मूल्यांकन': 'assessment', 'जाँच': 'assessment', 'गतिविधि': 'activity',
+}
+
+
+def _expand_tokens(query: str) -> set:
+    """Query tokens, plus the English topic a Hindi word stands for."""
+    text = query.lower()
+    toks = set(_tokenize(text))
+    for hi, en in _HI_TOPIC.items():
+        if hi in text:
+            toks.add(en)
+    return toks
+
+
 def retrieve(query: str, k: int = 3, min_score: int = 1) -> List[Dict[str, Any]]:
-    """Lexical retrieval over the bundled guidance/curriculum corpus."""
+    """Lexical retrieval over the bundled guidance/curriculum corpus.
+
+    Understands the Hindi topic words for the corpus's English text (see
+    _HI_TOPIC); pure-English and code-switched questions are unchanged.
+    """
     corpus = _load_corpus()
-    q_tokens = set(_tokenize(query))
+    q_tokens = _expand_tokens(query)
     if not q_tokens:
         return []
     scored: List[Tuple[int, Dict[str, Any]]] = []
@@ -160,6 +198,74 @@ def _lang_key(language: str) -> str:
     return 'hi' if language.lower().startswith('hi') else 'en'
 
 
+# The six follow-up chips the UI offers. Each must produce a DIFFERENT answer;
+# before this table they all fell through to the first generic rule (multi-grade
+# rhythm), so clicking "Create a worksheet" and "Generate a quick assessment"
+# gave byte-identical replies. Matched on the chip's own wording, before the
+# topic rules, so the answer is shaped by what was asked.
+_CHIP_RULES: List[Tuple[str, str, str]] = [
+    (r'^simplify',
+     'Simpler version: pick ONE idea from the reply above and drop the rest. Say it in one '
+     'sentence a Grade 2 child could repeat back, give one example with something in the room, '
+     'then ask one question that needs only a word or a finger-count to answer. If a child '
+     'cannot respond, step down once more — smaller numbers, a picture, or a partner answer first.',
+     'सरल संस्करण: ऊपर के उत्तर से एक ही विचार चुनें, बाकी छोड़ दें। इसे एक वाक्य में कहें जिसे '
+     'कक्षा 2 का बच्चा दोहरा सके, कमरे की किसी वस्तु से एक उदाहरण दें, फिर एक ऐसा प्रश्न पूछें '
+     'जिसका उत्तर एक शब्द या उँगलियों से मिले। यदि बच्चा उत्तर न दे पाए, तो और छोटे अंक, चित्र '
+     'या पहले साथी का उत्तर दें।'),
+    (r'^adapt this activity for another grade',
+     'To move the same activity up or down a grade, change only the demand, not the task: keep '
+     'the same materials and opening question, then change what children must PRODUCE. Lower '
+     'grade — show the answer with objects, say it aloud. Middle — record it in a number '
+     'sentence or labelled drawing. Higher — explain the rule they used and test it on a second '
+     'example. Same setup, three exit points.',
+     'एक ही गतिविधि को ऊपर-नीचे करने के लिए कार्य नहीं, माँग बदलें: वही सामग्री और शुरुआती प्रश्न '
+     'रखें, केवल यह बदलें कि बच्चे क्या बनाकर दिखाएँ। नीची कक्षा — वस्तुओं से उत्तर दिखाएँ, '
+     'बोलकर कहें। मध्य — संख्या-वाक्य या नामांकित चित्र में लिखें। ऊँची — अपना नियम समझाएँ और '
+     'दूसरे उदाहरण पर जाँचें।'),
+    (r'^create a worksheet',
+     'Worksheet plan (write it on the board, all grades on one sheet):\n'
+     '1. Warm-up — 4 items at the shared level everyone can start.\n'
+     '2. Core — 6 items in the topic from the reply above, arranged easiest to hardest.\n'
+     '3. Challenge — 2 items that ask for reasoning ("explain how you know").\n'
+     '4. One picture/diagram item for children who read slowly.\n'
+     'Leave the last box blank for "my own example". '
+     'Use the Worksheet button under the reply to export it as a file.',
+     'वर्कशीट योजना (बोर्ड पर लिखें, सभी कक्षाएँ एक ही पत्रक पर):\n'
+     '1. वार्म-अप — 4 प्रश्न जो सब शुरू कर सकें।\n'
+     '2. मुख्य — ऊपर के विषय के 6 प्रश्न, आसान से कठिन।\n'
+     '3. चुनौती — 2 प्रश्न जिनमें कारण बताना हो ("आपको कैसे पता?")।\n'
+     '4. एक चित्र-प्रश्न उन बच्चों के लिए जो धीरे पढ़ते हैं।\n'
+     'अंत में "मेरा अपना उदाहरण" के लिए खाली जगह छोड़ें।'),
+    (r'^suggest a low-cost teaching aid',
+     'Low-cost aid: use materials already in the room. Sticks/seeds for counting and place '
+     'value; bottle caps for sorting, patterns and fractions; chalk-drawn number lines on the '
+     'floor for jumping; old calendar paper for tens/ones charts; a rope with knots for a '
+     'measuring or fraction line. Pick ONE aid and use it for the whole lesson so it becomes a '
+     'shared language, not decoration.',
+     'कम लागत की सामग्री: कमरे में मौजूद चीज़ें ही उपयोग करें। गिनती और स्थानीय मान के लिए डंडे/बीज; '
+     'वर्गीकरण, पैटर्न और भिन्नों के लिए बोतल के ढक्कन; फ़र्श पर चॉक से संख्या-रेखा; दहाई/इकाई '
+     'के लिए पुराना कैलेंडर कागज़; मापन के लिए गाँठ वाली रस्सी। एक ही सामग्री पूरे पाठ में रखें।'),
+    (r'^generate a quick assessment',
+     'Quick assessment (5 minutes, no marking): one question with three plausible answers A/B/C '
+     'where two are common mistakes. Children show 1, 2 or 3 fingers. Then ask one child per '
+     'option to say WHY. You learn the misconception, not just a score. Record only: "most / '
+     'some / few got it" — enough to decide re-teach or move on.',
+     'जल्दी मूल्यांकन (5 मिनट, जाँच-पुस्तिका नहीं): एक प्रश्न, तीन संभावित उत्तर A/B/C जिनमें '
+     'दो आम ग़लतियाँ हों। बच्चे 1, 2 या 3 उँगली दिखाएँ। फिर हर उत्तर देने वाले एक बच्चे से '
+     '"क्यों?" पूछें। केवल इतना लिखें: "अधिकांश / कुछ / कम" — दोबारा पढ़ाना है या आगे बढ़ना।'),
+    (r'^provide an alternative activity',
+     'Alternative activity if the first one is not working: switch the FORMAT, keep the idea. '
+     'Instead of individual work, try a card sort in pairs; instead of writing, try each child '
+     'teaching one step to a partner; instead of whole-class Q&A, try standing in a line ordered '
+     'by an answer. Same learning, a new route in — useful when energy drops or half the group '
+     'is stuck.',
+     'यदि पहली गतिविधि काम न करे तो प्रारूप बदलें, विचार वही रखें। अकेले काम की जगह जोड़ी में कार्ड '
+     'छाँटना; लिखने की जगह हर बच्चा साथी को एक चरण सिखाए; पूरी कक्षा के प्रश्न की जगह उत्तर के '
+     'क्रम में एक पंक्ति में खड़े हों।'),
+]
+
+
 def _local_reply(query: str, context: Dict[str, Any], language: str) -> Tuple[str, List[Dict[str, Any]]]:
     lang = _lang_key(language)
     s = _LOCAL_STRINGS[lang]
@@ -171,11 +277,34 @@ def _local_reply(query: str, context: Dict[str, Any], language: str) -> Tuple[st
             rule_body = en_body if lang == 'en' else hi_body
             break
 
+    # A follow-up chip is a request to reshape the previous answer, not a new
+    # topic — so it is answered from _CHIP_RULES, then grounded with whatever
+    # the thread was about (hits), so Sources still reflect the real topic.
+    chip_body = None
+    for pattern, en_body, hi_body in _CHIP_RULES:
+        if re.search(pattern, query, re.I):
+            chip_body = en_body if lang == 'en' else hi_body
+            break
+
+    # The corpus carries an English `text` and, where translated, a `text_hi`.
+    # Answering a Hindi question with the English body (the old behaviour) made
+    # the "Response language: Hindi" selector look broken.
+    def _body(h: Dict[str, Any]) -> str:
+        if lang == 'hi' and h.get('text_hi'):
+            return str(h['text_hi'])
+        return str(h.get('text', ''))
+
     parts: List[str] = []
-    if rule_body:
+    if chip_body:
+        parts.append(chip_body)
+        if hits:
+            parts.append(_body(hits[0]))
+    elif rule_body:
         parts.append(rule_body)
+        if hits:
+            parts.append(_body(hits[0]))
     elif hits:
-        parts.append(hits[0].get('text', ''))
+        parts.append(_body(hits[0]))
     else:
         parts.append(s['no_source'])
 

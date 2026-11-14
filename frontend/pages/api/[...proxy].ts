@@ -37,6 +37,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (HOP_BY_HOP.has(k) || k === 'host') continue
     headers[k] = Array.isArray(value) ? value.join(', ') : value
   }
+  // Forward the real client address. Without this the backend sees every
+  // request as coming from the proxy itself, so its per-IP limits (guest
+  // minting, /assistant/ask) collapse all visitors into a single bucket and
+  // start returning 429 to everyone once one person hits the cap.
+  const fwd = (req.headers['x-forwarded-for'] as string | undefined)
+    || (req.socket && req.socket.remoteAddress)
+    || ''
+  if (fwd && !headers['x-forwarded-for']) headers['x-forwarded-for'] = fwd
   try {
     const init: RequestInit = {
       method: req.method || 'GET',
@@ -48,8 +56,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(r.status)
     const ct = r.headers.get('content-type')
     if (ct) res.setHeader('content-type', ct)
+    // Pass through cookies the backend sets (thrive_guest, session).
+    const setCookie = r.headers.get('set-cookie')
+    if (setCookie) res.setHeader('set-cookie', setCookie)
     res.send(text)
-  } catch {
-    res.status(502).json({ detail: 'THRIVE is unreachable right now — please try again in a moment.' })
+  } catch (err: any) {
+    // Say which upstream failed, not just "unreachable": when BACKEND_URL is
+    // missing the default is localhost, which never exists on Vercel, and the
+    // generic message sent people hunting for an assistant bug instead.
+    const reason = String(err?.cause?.code || err?.code || err?.message || 'network error')
+    console.error('[THRIVE proxy] upstream failed', { target, reason })
+    res.status(502).json({
+      detail: process.env.NODE_ENV === 'production'
+        ? 'THRIVE is unreachable right now — please try again in a moment.'
+        : `THRIVE backend unreachable at ${target} (${reason}). Set BACKEND_URL to the running FastAPI origin.`,
+    })
   }
 }

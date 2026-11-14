@@ -155,6 +155,29 @@ class WhatsAppPairing(Base):
     created_at = Column(String(32), nullable=False)
 
 
+class WhatsAppTurn(Base):
+    """One inbound WhatsApp message and the reply THRIVE sent back.
+
+    Kept only so the /demo page can show the last few exchanges live during a
+    presentation. Deliberately minimal:
+      • the phone is stored masked (last 4 digits) — a full number is personal
+        data and there is no reason to keep it here;
+      • message bodies are the teacher's own curriculum questions, and the
+        assistant is instructed never to record student details, so no child's
+        personal data enters this table.
+    Rows are trimmed to a small window by the writer.
+    """
+    __tablename__ = 'whatsapp_turns'
+
+    id = Column(Integer, primary_key=True)
+    phone_masked = Column(String(16), nullable=False, index=True)
+    inbound = Column(Text, nullable=False)
+    reply = Column(Text, nullable=False)
+    action = Column(String(32), nullable=False, default='')
+    language = Column(String(16), nullable=False, default='English')
+    created_at = Column(String(32), nullable=False, index=True)
+
+
 class RemindTask(Base):
     """A reminder set over WhatsApp (or web) and owned by a teacher account."""
     __tablename__ = 'remind_tasks'

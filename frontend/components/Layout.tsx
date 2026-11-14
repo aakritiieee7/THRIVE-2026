@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { backendUp, getToken } from '../lib/api'
 import { useStoredState, EMPTY_PROFILE } from '../lib/storage'
+import { applyDemo, clearDemo, isDemoActive } from '../lib/demo-seed'
 import { IconBell, IconChat, IconFolder, IconHome, IconStudio, IconSparkle, IconBook, IconUsers, IconLayers } from './Icons'
 import { ThriveLogo } from './Logo'
 
@@ -51,6 +52,36 @@ export default function Layout({ children, title }: { children: React.ReactNode;
 
   useEffect(() => { setSignedIn(!!getToken()) }, [router.pathname])
 
+  /* ?demo=1 fills the workspace with the demo teacher so a presentation never
+     opens on empty screens. Runs once, client-side, and only when the flag is
+     present — a normal visit is untouched. */
+  useEffect(() => {
+    const q = router.query
+    const wants = q.demo === '1' || q.demo === 'true'
+    if (!wants) return
+    if (!isDemoActive()) {
+      applyDemo()
+      // Every page reads its stored data in a mount effect, which has already
+      // run by now — so the seeded teacher would not appear until a reload.
+      // Drop ?demo=1 from the URL so the reload does not re-enter this branch.
+      window.location.replace(router.pathname)
+      return
+    }
+    setDemoOn(true)
+  }, [router.query])
+
+  const [demoOn, setDemoOn] = useState(false)
+  // Demo state lives in storage, so it can only be read after mount. The
+  // reload below re-runs this, which is how the sidebar and every page pick
+  // up (or drop) the seeded data.
+  useEffect(() => { setDemoOn(isDemoActive()) }, [router.pathname])
+
+  function toggleDemo() {
+    if (isDemoActive()) clearDemo()
+    else applyDemo()
+    window.location.reload()
+  }
+
   // The dot reflects whether the backend is actually reachable — it goes amber
   // (not a false green) when THRIVE is running from local device storage only.
   useEffect(() => {
@@ -66,7 +97,10 @@ export default function Layout({ children, title }: { children: React.ReactNode;
   return <div className="app-shell">
     <aside className="sidebar">
       <div className="brand">
-        <Link href="/" className="brand-link"><ThriveLogo size={34} /></Link>
+        {/* The sidebar is dark (--forest-ink), so the wordmark must use the
+            dark-background tone — the default light tone drew forest-green
+            text on forest-green and was nearly unreadable. */}
+        <Link href="/" className="brand-link"><ThriveLogo size={34} tone="dark" /></Link>
         <Link href="/landing" className="text-link" style={{ fontSize: 10, display: 'block', marginTop: 3 }}>About THRIVE</Link>
       </div>
       <nav aria-label="Main">
@@ -88,10 +122,25 @@ export default function Layout({ children, title }: { children: React.ReactNode;
             style={online === false
               ? { background: 'var(--honey)' }
               : online === null ? { background: 'var(--faint)' } : undefined} />
+          {/* Three distinct states, never blurred: offline, signed in, guest.
+              A guest is NOT "saved to your account" — saying so implied a
+              signed-in workspace and confused people about where their work
+              lived. */}
           {online === false
             ? 'Offline · saving on this device'
-            : signedIn ? 'Signed in · work syncs to your account' : 'Your workspace is saved on this device'}
+            : signedIn
+              ? 'Signed in · work syncs to your account'
+              : demoOn
+                ? 'Demo data · not a real account'
+                : 'Guest · work is saved on this device only'}
         </div>
+        {/* Demo control. Shows a clear chip while demo data is loaded so a
+            viewer can tell it apart from a real signed-in teacher. */}
+        {demoOn && <span className="tag demo-chip" title="Sample data loaded for a demonstration — not a real teacher account">Demo data</span>}
+        <button className="btn btn-small demo-toggle" onClick={toggleDemo}
+          title={demoOn ? 'Remove the demo teacher and all demo content' : 'Fill the workspace with a sample teacher, plans and posts'}>
+          {demoOn ? 'Clear demo data' : 'Load demo teacher'}
+        </button>
         <Link className="teacher-card" href="/profile">
           <span className="avatar">{short[0]}</span>
           <span>

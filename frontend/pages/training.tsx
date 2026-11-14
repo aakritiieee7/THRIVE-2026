@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react'
 import Layout from '../components/Layout'
 import {trainingCourses,useStoredState} from '../lib/storage'
+import {LESSONS} from '../lib/training-lessons'
 import {api,getToken} from '../lib/api'
 import {IconBookmark,IconBookmarkFill,IconCheck} from '../components/Icons'
 
@@ -168,9 +169,33 @@ export default function Training(){
     <div className="spread"><div><span className="tag">{course.topic} · {course.length}</span><h2 style={{marginTop:10}}>{course.title}</h2></div><button className="btn btn-small" onClick={()=>setCourse(null)}>Close ×</button></div>
     <p className="muted" style={{lineHeight:1.7,fontSize:11}}>{course.desc}</p>
     <div className="divider"/>
-    <div><b style={{fontSize:10}}>Lesson {Math.min((progress[course.id]||0)+1,course.lesson.length)} of {course.lesson.length}</b>
-     <p style={{fontSize:13,lineHeight:1.8,marginTop:8}}>{course.lesson[Math.min(progress[course.id]||0,course.lesson.length-1)]}</p></div>
-    <div className="notice">Reflection: What is one change you could try in your next class?</div>
+    {(() => {
+      /* Real lesson content: title, an explanation, one activity to try, and
+         one reflection — instead of just a reflection box. Falls back to the
+         short course outline if a course has no authored lessons. */
+      const idx = Math.min(progress[course.id] || 0, course.lesson.length - 1)
+      const lesson = LESSONS[course.id]?.[idx]
+      const title = course.lesson[idx]
+      if (!lesson) {
+        return <>
+          <div><b style={{fontSize:10}}>Lesson {idx + 1} of {course.lesson.length}</b>
+            <p style={{fontSize:13,lineHeight:1.8,marginTop:8}}>{title}</p></div>
+          <div className="notice">Reflection: What is one change you could try in your next class?</div>
+        </>
+      }
+      return <>
+        <div>
+          <b style={{fontSize:10}}>Lesson {idx + 1} of {course.lesson.length} · {lesson.title}</b>
+          <p style={{fontSize:12.5,lineHeight:1.8,marginTop:8}}>{lesson.explain}</p>
+        </div>
+        <div className="divider"/>
+        <div>
+          <b style={{fontSize:10}}>Try this in your next class</b>
+          <p style={{fontSize:12.5,lineHeight:1.8,marginTop:6}}>{lesson.activity}</p>
+        </div>
+        <div className="notice">Reflect: {lesson.reflect}</div>
+      </>
+    })()}
     <button className="btn btn-primary" style={{marginTop:14}} onClick={()=>advance(course)}>{(progress[course.id]||0)>=course.lesson.length?'Mark reviewed':'Mark lesson complete'}</button>
    </div>
   </div>}

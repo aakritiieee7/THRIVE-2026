@@ -10,3 +10,4 @@ pydantic
 python-dotenv
 # Optional / infra (only needed for full docker-compose stack):
 #   alembic redis celery ortools
+segno>=1.5

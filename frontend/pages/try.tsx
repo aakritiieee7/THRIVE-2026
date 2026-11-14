@@ -5,7 +5,8 @@ import { ThriveLogo } from '../components/Logo'
 import { IllEmpty, IllHero } from '../components/Illustrations'
 import { IconAlert, IconArrow, IconCheck, IconPlus, IconSave } from '../components/Icons'
 import { api, ApiError } from '../lib/api'
-import { ensureGuest, getGuest, guestHeaders } from '../lib/guest'
+import { ensureGuest, getGuest, guestHeaders, guestErrorMessage } from '../lib/guest'
+import { findFallback } from '../lib/demo-fallback'
 import { useStoredState, EMPTY_PROFILE } from '../lib/storage'
 
 /**
@@ -19,7 +20,8 @@ import { useStoredState, EMPTY_PROFILE } from '../lib/storage'
  * courtesy mirror.
  */
 
-type Msg = { id: number; role: 'teacher' | 'thrive'; text: string; sources?: any[]; mode?: string; quota?: number }
+/* sample:true marks a pre-written fallback answer, not a live grounded reply. */
+type Msg = { id: number; role: 'teacher' | 'thrive'; text: string; sources?: any[]; mode?: string; quota?: number; sample?: boolean }
 type Draft = { id: number; title: string; minutes: number; subject: string }
 
 const SUGGESTED = [
@@ -30,7 +32,19 @@ const SUGGESTED = [
 
 export default function Try() {
   const [ready, setReady] = useState(false)
-  const [session, setSession] = useState(getGuest())
+  /* Seeded after mount, not during render: reading localStorage in a useState
+     initialiser makes the first client render differ from the server HTML and
+     React throws a hydration mismatch. */
+  const [session, setSession] = useState<ReturnType<typeof getGuest>>(null)
+  /* Why guest minting failed, if it did — shown with a Retry button. */
+  const [sessionError, setSessionError] = useState('')
+  /* The quota line depends on localStorage (a guest token) and on the async
+     mint, so the server and the first client render MUST agree on it.
+     Rendering it directly caused a hydration mismatch ("starting your guest
+     session…" on the server vs "20 free questions…" on the client), which is
+     why this waits until after mount. */
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
   const [msgs, setMsgs] = useState<Msg[]>([
     { id: 1, role: 'thrive',
       text: 'Namaste. I am THRIVE — try me without an account. Ask a teaching question in English or Hindi, and if you tell me your grades and minutes I will build a time-bound multi-grade plan.' },
@@ -52,7 +66,13 @@ export default function Try() {
 
   useEffect(() => {
     ;(async () => {
+      // Pick up a token stored by an earlier visit first, then mint if needed.
+      setSession(getGuest())
       const s = await ensureGuest()
+      // Surface the real reason instead of leaving the UI on
+      // "starting your guest session…" forever (the old behaviour when the
+      // backend 502'd — the spinner never resolved and Send stayed disabled).
+      if (!s) setSessionError(guestErrorMessage())
       setSession(s)
       if (s) {
         try {
@@ -86,8 +106,16 @@ export default function Try() {
         setMsgs(m => [...m, { id: Date.now() + 1, role: 'thrive', text: err.message,
           sources: [{ title: 'Guest limit', org: 'THRIVE', why: 'quota' }] }])
       } else {
-        setMsgs(m => [...m, { id: Date.now() + 1, role: 'thrive',
-          text: `I could not reach THRIVE right now (${err?.message || 'please try again in a moment'}). Try again in a moment.` }])
+        // Same fallback the assistant page uses: a pre-written, clearly
+        // labelled sample beats an error on a live demo.
+        const fb = findFallback(q.trim(), language)
+        if (fb) {
+          setMsgs(m => [...m, { id: Date.now() + 1, role: 'thrive', text: fb.text,
+            sources: fb.sources, mode: 'sample', sample: true }])
+        } else {
+          setMsgs(m => [...m, { id: Date.now() + 1, role: 'thrive',
+            text: `I could not reach THRIVE right now (${err?.message || 'please try again in a moment'}). Try again in a moment.` }])
+        }
       }
     } finally { setBusy(false) }
   }
@@ -128,11 +156,15 @@ export default function Try() {
 
   function flash(t: string) { setToast(t); setTimeout(() => setToast(''), 2600) }
 
-  const quotaNote = session
-    ? (remaining === null
-      ? `${session.ask_limit_per_hour} free questions per hour as a guest`
-      : `${remaining} of ${session.ask_limit_per_hour} guest questions left this hour`)
-    : 'starting your guest session…'
+  const quotaNote = !mounted
+    ? 'starting your guest session…'
+    : session
+      ? (remaining === null
+        ? `${session.ask_limit_per_hour} free questions per hour as a guest`
+        : `${remaining} of ${session.ask_limit_per_hour} guest questions left this hour`)
+      : sessionError
+        ? 'guest session unavailable'
+        : 'starting your guest session…'
 
   return (
     <div className="try-screen">
@@ -150,9 +182,21 @@ export default function Try() {
       <div className="try-grid">
         {/* ── Conversation ────────────────────────────────────────── */}
         <section className="try-chat panel">
+          {sessionError && !session && (
+            <div className="notice" role="alert" style={{ marginBottom: 10, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <IconAlert size={13} />
+              <span style={{ flex: '1 1 260px' }}>{sessionError}</span>
+              <button className="btn btn-small btn-primary" onClick={() => window.location.reload()}>Retry</button>
+            </div>
+          )}
           <div className="chat-stage try-stage" ref={scroller}>
             {msgs.map(m => (
               <div className={'bubble ' + (m.role === 'teacher' ? 'mine' : '')} key={m.id}>
+                {m.sample && (
+                  <div className="notice" style={{ marginBottom: 8, padding: '6px 9px', fontSize: 10.5 }}>
+                    <b>Sample answer</b> — the live assistant was unreachable. This is pre-written guidance, not a live grounded reply.
+                  </div>
+                )}
                 <div style={{ whiteSpace: 'pre-line' }}>{m.text}</div>
                 {m.sources && m.sources.length > 0 && (
                   <div className="sources-box">

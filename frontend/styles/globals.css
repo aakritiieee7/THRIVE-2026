@@ -619,3 +619,24 @@ a.plan-item:hover{border-color:var(--forest-line);background:var(--sage-tint)}
 .feature-list li{display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.5;color:var(--ink)}
 .feature-list svg{flex:none;margin-top:2px;color:var(--forest)}
 @media(max-width:940px){.try-grid{grid-template-columns:1fr}}
+
+/* ---- Demo-data affordances (lib/demo-seed.ts) -------------------------- */
+/* A demo run must never look like a real signed-in teacher's workspace, so
+   these stay visibly "sample" and easy to remove. */
+.demo-chip{
+  background:var(--honey-tint,#FBF0D9);color:var(--honey-deep,#8A5F12);
+  border:1px solid var(--honey-line,#EBD5A6);margin:6px 0 4px;
+}
+.demo-toggle{
+  width:100%;justify-content:center;margin-top:6px;
+  background:transparent;border:1px dashed var(--line);color:var(--ink-soft);
+  font-size:10.5px;
+}
+.demo-toggle:hover{border-color:var(--forest);color:var(--forest-deep);background:var(--forest-tint)}
+
+/* ---- Sidebar contrast -------------------------------------------------- */
+/* The sidebar sits on --forest-ink. .text-link is forest-green, which made
+   "About THRIVE" nearly invisible on that background. Scoped so links
+   elsewhere (update cards, pillar cards) keep their forest colour. */
+.sidebar .text-link{color:rgba(250,247,241,.78)}
+.sidebar .text-link:hover{color:#FAF7F1}

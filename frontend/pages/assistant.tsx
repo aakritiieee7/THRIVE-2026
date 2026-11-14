@@ -3,7 +3,8 @@ import Link from 'next/link'
 import Layout from '../components/Layout'
 import {useStoredState, EMPTY_PROFILE} from '../lib/storage'
 import {api,getToken,ApiError} from '../lib/api'
-import {ensureGuest,guestHeaders} from '../lib/guest'
+import {ensureGuest,guestHeaders,guestErrorMessage} from '../lib/guest'
+import {findFallback} from '../lib/demo-fallback'
 import {savePlan} from '../lib/plans'
 import {IllEmpty} from '../components/Illustrations'
 import {createRecognizer,speechSupported,VoiceState} from '../lib/voice'
@@ -13,11 +14,20 @@ import {
 } from '../components/Icons'
 
 type Source={title?:string;org?:string;url?:string;why?:string}
+/* A failed assistant turn. `failed` carries the question so the bubble can
+   offer Retry; `fallback` marks a pre-written sample answer (not live). */
+type Failure={question:string;message:string}
+type FallbackInfo={sample:true}
 /* plan: the compiled schedule when the reply IS a lesson plan (server-built).
    draft:true marks the reply as a saved draft, not yet compiled. */
 type Message={
  id:number;role:'teacher'|'assistant';text:string;sources?:Source[];mode?:string
  plan?:any;planId?:number|string;draft?:boolean
+ /* set on an assistant bubble that failed; enables its Retry button */
+ failed?:Failure
+ /* true when the text is a pre-written sample, shown because the live
+    assistant was unreachable — the bubble labels it "sample" */
+ sample?:boolean
 }
 
 const start:Message[]=[{id:1,role:'assistant',text:'Namaste. I can help you shape a classroom activity, adapt a lesson for different learning levels, or think through a teaching challenge. Tell me the grade, subject and what you are working on.',sources:[{title:'THRIVE teaching guidance',org:'THRIVE',why:'opening message'}],mode:'grounded'}]
@@ -44,6 +54,7 @@ function modeLabel(mode?:string){
  if(!mode)return null
  if(mode==='llm-grounded')return {cls:'llm',text:'Grounded · AI-drafted'}
  if(mode==='local-grounded')return {cls:'local',text:'Pattern guidance'}
+ if(mode==='sample')return {cls:'local',text:'Sample (pre-written)'}
  return {cls:'grounded',text:'Grounded'}
 }
 
@@ -164,9 +175,9 @@ export default function Assistant(){
    // (server-enforced). No fake replies.
    const sess=await ensureGuest()
    if(!sess){
-    setMessages([...next,{id:Date.now()+1,role:'assistant',
-     text:'Could not start a guest session right now — check your connection and reload in a moment, or create a free account to keep your work.',
-     sources:[{title:'Service notice',org:'THRIVE',why:'connection notice'}],mode:'local-grounded'}])
+    // Name the actual cause (502 = backend unreachable, 429 = quota) rather
+    // than a blanket "check your connection".
+    setMessages([...next,failureBubble(q.trim(),guestErrorMessage())])
     setBusy(false);return
    }
    try{
@@ -180,14 +191,10 @@ export default function Assistant(){
     setMessages(m=>[...m,{id:Date.now()+1,role:'assistant',text:r.reply,sources:r.sources||[],mode:r.mode,plan:r.plan||undefined}])
     setOffline(false)
    }catch(err:any){
-    const msg=err instanceof ApiError&&(err.status===401||err.status===429)
-     ? err.message
-     : `I could not reach THRIVE right now (${err?.message||'please try again in a moment'}). Your question is kept in this conversation — please retry in a moment.`
-    setMessages(m=>[...m,{id:Date.now()+1,role:'assistant',
-      text:msg,
-      sources:[{title:'Service notice',org:'THRIVE',why:'connection notice'}],
-      mode:'local-grounded'}])
-    setOffline(!(err instanceof ApiError&&(err.status===401||err.status===429)))
+    const limited=err instanceof ApiError&&(err.status===401||err.status===429)
+    const msg=limited?err.message:`I could not reach THRIVE right now (${err?.message||'please try again in a moment'}).`
+    setMessages(m=>[...m,failureBubble(q.trim(),msg)])
+    setOffline(!limited)
    }finally{setBusy(false)}
    return
   }
@@ -197,11 +204,27 @@ export default function Assistant(){
    setMessages(m=>[...m,{id:Date.now()+1,role:'assistant',text:r.reply,sources:r.sources||[],mode:r.mode,plan:r.plan||undefined}])
    setOffline(false)
   }catch(err:any){
-   setMessages(m=>[...m,{id:Date.now()+1,role:'assistant',
-    text:`I could not reach THRIVE right now (${err?.message||'please try again in a moment'}). Your question is kept in this conversation — please retry in a moment.`,
-    sources:[{title:'Service notice',org:'THRIVE',why:'connection notice'}],mode:'local-grounded'}])
+   setMessages(m=>[...m,failureBubble(q.trim(),
+    `I could not reach THRIVE right now (${err?.message||'please try again in a moment'}).`)])
    setOffline(true)
   }finally{setBusy(false)}
+ }
+
+ /* A failed turn. When we have a pre-written answer for this question we
+    show it immediately, clearly tagged "sample", plus a Retry — so a live
+    demo never ends on an error. Same handler for guest and signed-in paths. */
+ function failureBubble(question:string,message:string):Message{
+  const fb=findFallback(question,language)
+  if(fb)return{id:Date.now()+2,role:'assistant',text:fb.text,sources:fb.sources,mode:'sample',sample:true}
+  return{id:Date.now()+2,role:'assistant',text:message,
+   sources:[{title:'Service notice',org:'THRIVE',why:'connection notice'}],
+   mode:'local-grounded',failed:{question,message}}
+ }
+
+ /** Retry a failed question: drop the failure bubble and ask again. */
+ function retry(f:Failure,id:number){
+  setMessages(ms=>ms.filter(m=>m.id!==id))
+  send(f.question)
  }
 
  /* Follow-ups reuse the last teacher question so context carries over.
@@ -362,7 +385,16 @@ export default function Assistant(){
        You are using the free guest session — answers are server-grounded, and your conversation is not saved to an account yet.</small>}
      </div>}
      {messages.map(m=><div className={'bubble '+(m.role==='teacher'?'mine':'')} key={m.id}>
+      {m.sample&&<div className="notice" style={{marginBottom:8,padding:'6px 9px',fontSize:10.5}}
+        title="The live assistant could not be reached, so a pre-written answer is shown instead.">
+        <b>Sample answer</b> — the live assistant was unreachable. This is pre-written guidance, not a live grounded reply.
+      </div>}
       <div style={{whiteSpace:'pre-line'}}>{m.text}</div>
+      {m.failed&&<div style={{marginTop:8}}>
+        <button className="btn btn-small btn-primary" onClick={()=>retry(m.failed!,m.id)}>
+          <IconSparkle size={12}/> Retry
+        </button>
+      </div>}
       {m.role==='assistant'&&modeLabel(m.mode)&&<div style={{marginTop:6}}>
         <span className={'mode-badge '+modeLabel(m.mode)!.cls}>{modeLabel(m.mode)!.text}</span>
         {m.plan&&<span className="mode-badge grounded" style={{marginLeft:6}}>Compiled schedule</span>}

@@ -4,6 +4,7 @@ import Layout from '../components/Layout'
 import {useStoredState,EMPTY_PROFILE} from '../lib/storage'
 import {api,getToken,setToken} from '../lib/api'
 import {getGuest,clearGuest} from '../lib/guest'
+import {STATES,boardsFor,boardNote,MEDIUMS} from '../lib/context-options'
 
 export default function Profile(){
  const router=useRouter()
@@ -134,9 +135,14 @@ export default function Profile(){
     <div className="form-grid">
      <div className="field"><label>Your name</label><input value={profile.name} onChange={e=>update('name',e.target.value)} placeholder="How should THRIVE address you?"/></div>
      <div className="field"><label>Email</label><input type="email" value={session?.email||profile.email||''} onChange={e=>update('email',e.target.value)} placeholder={session?'':'optional'} disabled={!!session} title={session?'Managed by your account':'Optional'}/></div>
-     <div className="field"><label>State</label><select value={profile.state} onChange={e=>update('state',e.target.value)}><option value="">Select a state…</option>{['Bihar','Delhi','Uttar Pradesh','Madhya Pradesh','Rajasthan','Other'].map(x=><option key={x}>{x}</option>)}</select></div>
-     <div className="field"><label>Board / curriculum</label><select value={profile.board} onChange={e=>update('board',e.target.value)}><option value="">Select a board…</option>{['Bihar SCERT','NCERT','State curriculum — other','Other'].map(x=><option key={x}>{x}</option>)}</select></div>
-     <div className="field"><label>Medium(s) of instruction</label><select value={profile.medium} onChange={e=>update('medium',e.target.value)}><option value="">Select a medium…</option>{['Hindi + English','Hindi','English','Other'].map(x=><option key={x}>{x}</option>)}</select></div>
+     <div className="field"><label>State</label><select value={profile.state} onChange={e=>{
+       /* Changing state invalidates the board it was paired with. */
+       update('state',e.target.value); update('board','')}}>
+       <option value="">Select a state…</option>{STATES.map(x=><option key={x}>{x}</option>)}</select></div>
+     <div className="field"><label>Board / curriculum</label><select value={profile.board} onChange={e=>update('board',e.target.value)} disabled={!profile.state}>
+       <option value="">{profile.state?'Select a board…':'Choose a state first'}</option>{boardsFor(profile.state).map(b=><option key={b.value}>{b.value}</option>)}</select>
+       {boardNote(profile.state,profile.board)&&<small className="muted" style={{fontSize:10,display:'block',marginTop:4}}>{boardNote(profile.state,profile.board)}</small>}</div>
+     <div className="field"><label>Medium(s) of instruction</label><select value={profile.medium} onChange={e=>update('medium',e.target.value)}><option value="">Select a medium…</option>{MEDIUMS.map(x=><option key={x}>{x}</option>)}</select></div>
      <div className="field"><label>Grades you teach (comma separated)</label><input value={profile.grades} onChange={e=>update('grades',e.target.value)} placeholder="e.g. 3, 5"/></div>
      <div className="field"><label>Subjects (comma separated)</label><input value={profile.subjects} onChange={e=>update('subjects',e.target.value)} placeholder="e.g. Mathematics, EVS"/></div>
      <div className="field"><label>School (optional)</label><input value={profile.school||''} onChange={e=>update('school',e.target.value)} placeholder="School name"/></div>

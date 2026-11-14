@@ -5,6 +5,8 @@ import {useStoredState, EMPTY_PROFILE} from '../lib/storage'
 import {api,getToken} from '../lib/api'
 import {savePlan} from '../lib/plans'
 import {fetchChapters,matchChapter,SHARED_TOPICS,SubjectChapters} from '../lib/curriculum'
+import {STATES,boardsFor,boardNote,MEDIUMS} from '../lib/context-options'
+import {exportPlanPdf,waMeLink} from '../lib/export-plan'
 import {IconCheck,IconClock} from '../components/Icons'
 
 /**
@@ -132,6 +134,48 @@ export default function Guided(){
   setToast('Saved to My resources');setTimeout(()=>setToast(''),2400)
  }
 
+ /* Export the compiled plan as a printable document (browser → Save as PDF).
+    No PDF library: the print dialog is built in and works offline. */
+ function printPlan(){
+  if(!plan)return
+  const ok=exportPlanPdf(
+   {title:`${subject}: ${grades.map(g=>`Grade ${g.grade}`).join(' & ')}`,subject,minutes,
+    medium:profile.medium,board:profile.board,materials,
+    schedule:plan.slots,assessments:plan.assessments,grades},
+   {teacher:profile.name,state:profile.state})
+  setToast(ok?'Printable copy opened — choose “Save as PDF”':'Allow pop-ups to export the plan')
+  setTimeout(()=>setToast(''),2600)
+ }
+
+ /* Send to the teacher's WhatsApp.
+    Signed out (or no linked number): hand off to wa.me, which opens WhatsApp
+    with the plan pre-filled — no server involvement, nothing stored.
+    Signed in: ask the API to send it through the Cloud API, and fall back to
+    wa.me when the account has no linked number yet. */
+ async function sendToWhatsApp(){
+  if(!plan)return
+  const text=[
+   `*${subject} — ${grades.map(g=>`Grade ${g.grade}`).join(' & ')}*`,
+   ['Grades', profile.board, profile.medium].filter(Boolean).join(' · '),
+   '',
+   ...plan.slots.map((s:any)=>`${String(s.start??'').padStart(2,'0')}′ · ${s.label||s.grade||''}`),
+   '',
+   'Check against your official syllabus before use.',
+  ].join('\n')
+  if(!getToken()){
+   window.open(waMeLink('', text),'_blank')
+   setToast('Opening WhatsApp…');setTimeout(()=>setToast(''),2400);return
+  }
+  try{
+   const r=await api.post<any>('/api/assistant/whatsapp/send',{text})
+   if(r&&r.sent){setToast('Sent to your linked WhatsApp number')}
+   else{window.open(waMeLink(r?.phone||'',text),'_blank');setToast('No linked number — opening WhatsApp instead')}
+  }catch{
+   window.open(waMeLink('',text),'_blank');setToast('Opening WhatsApp instead')
+  }
+  setTimeout(()=>setToast(''),2600)
+ }
+
  const canAdvance=[!!(profile.state&&profile.board&&profile.medium),true,grades.every(g=>g.topic.trim()&&g.objective.trim()),feasibility.ok,true]
  const go=(n:number)=>{
   if(n>1&&stage===1&&!canAdvance[0])return  // never skip past an unfinished Stage 1
@@ -176,9 +220,11 @@ export default function Guided(){
     {/* ---------- Stage 1: teaching context ---------- */}
     {stage===1&&<div>
      <div className="form-grid">
-      <div className="field"><label>State</label><select value={profile.state} onChange={e=>setProfile({...profile,state:e.target.value})}><option value="">Select a state…</option>{['Bihar','Delhi','Uttar Pradesh','Madhya Pradesh','Rajasthan','Other'].map(x=><option key={x}>{x}</option>)}</select></div>
-      <div className="field"><label>Board / curriculum</label><select value={profile.board} onChange={e=>setProfile({...profile,board:e.target.value})}><option value="">Select a board…</option>{['Bihar SCERT','NCERT','State curriculum — other','Other'].map(x=><option key={x}>{x}</option>)}</select></div>
-      <div className="field"><label>Medium of instruction</label><select value={profile.medium} onChange={e=>setProfile({...profile,medium:e.target.value})}><option value="">Select a medium…</option>{['Hindi + English','Hindi','English','Other'].map(x=><option key={x}>{x}</option>)}</select></div>
+      <div className="field"><label>State</label><select value={profile.state} onChange={e=>setProfile({...profile,state:e.target.value,board:''})}><option value="">Select a state…</option>{STATES.map(x=><option key={x}>{x}</option>)}</select></div>
+      <div className="field"><label>Board / curriculum</label><select value={profile.board} onChange={e=>setProfile({...profile,board:e.target.value})} disabled={!profile.state}>
+        <option value="">{profile.state?'Select a board…':'Choose a state first'}</option>{boardsFor(profile.state).map(b=><option key={b.value}>{b.value}</option>)}</select>
+        {boardNote(profile.state,profile.board)&&<small className="muted" style={{fontSize:10,display:'block',marginTop:4}}>{boardNote(profile.state,profile.board)}</small>}</div>
+      <div className="field"><label>Medium of instruction</label><select value={profile.medium} onChange={e=>setProfile({...profile,medium:e.target.value})}><option value="">Select a medium…</option>{MEDIUMS.map(x=><option key={x}>{x}</option>)}</select></div>
       <div className="field"><label>Assistant reply language</label><select value={profile.language||'English'} onChange={e=>setProfile({...profile,language:e.target.value})}><option>English</option><option>Hindi</option></select></div>
      </div>
      {!profile.state||!profile.board||!profile.medium
@@ -312,6 +358,8 @@ export default function Guided(){
        <span className="muted">{plan.slots.length} stages · fits your {minutes} min exactly · feasibility checked</span>
        <div className="row">
         <button className="btn btn-small" onClick={()=>{setPlan(null);setStage(3)}}>← Adjust goal</button>
+        <button className="btn btn-small" onClick={printPlan} title="Open a printable copy — choose Save as PDF">Export PDF</button>
+        <button className="btn btn-small" onClick={sendToWhatsApp} title="Send this plan to your WhatsApp">Send to my WhatsApp</button>
         <button className="btn btn-small btn-primary" onClick={save}>Save plan</button>
        </div>
       </div>

@@ -37,15 +37,60 @@ export function setGuest(s: GuestSession | null) {
   } catch { /* storage unavailable */ }
 }
 
-/** Mint (or reuse) a guest session. Returns null when the backend refuses. */
+/**
+ * Why the last ensureGuest() call failed, for the UI to show a real message
+ * instead of a generic one. Cleared on the next successful mint.
+ */
+export let lastGuestError: { status: number; message: string } | null = null
+
+/**
+ * Mint (or reuse) a guest session. Returns null when the backend refuses.
+ *
+ * Failures are logged rather than swallowed: this used to `catch { return
+ * null }`, so a 502 from a misconfigured BACKEND_URL, a 429 on the mint cap,
+ * and a cold-start timeout all looked identical to the caller — and the app
+ * could only say "Could not start a guest session". A distinct status here
+ * lets the UI name the actual cause.
+ */
 export async function ensureGuest(): Promise<GuestSession | null> {
   const existing = getGuest()
   if (existing) return existing
   try {
     const s = await api.post<GuestSession>('/api/guest/session')
     setGuest(s)
+    lastGuestError = null
     return s
-  } catch { return null }
+  } catch (err: any) {
+    const status = typeof err?.status === 'number' ? err.status : 0
+    const message = String(err?.message || 'network error')
+    lastGuestError = { status, message }
+    // Always visible in the browser console; in dev also in the Next terminal.
+    console.error('[THRIVE] guest session failed', { status, message })
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(
+        status === 502
+          ? '[THRIVE] 502 from /api/guest/session — the Next proxy could not reach the backend. Set BACKEND_URL to the public FastAPI origin.'
+          : '[THRIVE] guest session refused — see status above.'
+      )
+    }
+    return null
+  }
+}
+
+/**
+ * A short, human explanation of why the guest session could not start.
+ * Used by the assistant so the teacher sees the cause, not just "try again".
+ */
+export function guestErrorMessage(): string {
+  const e = lastGuestError
+  if (!e) return 'Could not start a guest session right now.'
+  if (e.status === 502 || e.status === 504 || e.status === 0)
+    return 'THRIVE’s assistant server is unreachable. If you run this locally, start the backend and set BACKEND_URL; otherwise try again in a moment.'
+  if (e.status === 429)
+    return 'Too many guest sessions from this network right now. Please try again in a few minutes, or create a free account.'
+  if (e.status >= 500)
+    return 'THRIVE’s assistant is briefly unavailable. Please try again in a moment.'
+  return e.message
 }
 
 /** Headers for guest-scoped requests. */

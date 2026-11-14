@@ -5,7 +5,8 @@
     "url": "https://ncert.nic.in/textbook.php",
     "tags": "multi-grade multigrade mixed grade scheduling teacher attention independent work rotation",
     "grade": "1-5",
-    "text": "In a multigrade classroom, plan the period as one system: a short whole-group opening, then rotating teacher-led turns for each grade while the other grades follow prepared independent tasks, and a grade-specific closing check. Give each waiting group a visible 'when you finish' task so teacher attention can stay with one grade at a time."
+    "text": "In a multigrade classroom, plan the period as one system: a short whole-group opening, then rotating teacher-led turns for each grade while the other grades follow prepared independent tasks, and a grade-specific closing check. Give each waiting group a visible 'when you finish' task so teacher attention can stay with one grade at a time.",
+    "text_hi": "मिश्रित कक्षा में पूरे पाठकाल को एक व्यवस्था की तरह योजना बनाएँ: छोटी सामूहिक शुरुआत, फिर कक्षा-दर-कक्षा बारी-बारी शिक्षक-लीड सत्र, जबकि बाकी कक्षाएँ तैयार स्वतंत्र कार्य करें, और अंत में हर कक्षा के लिए अलग समापन जाँच। जब आप एक कक्षा के साथ हों, बाकी कक्षाओं के लिए \"खत्म होते ही करें\" निर्देश बोर्ड पर स्पष्ट लिखें।"
   },
   {
     "title": "Shared vs grade-specific instruction",
@@ -13,7 +14,8 @@
     "url": "https://ncert.nic.in/textbook.php",
     "tags": "shared instruction grouping concept progression prerequisite",
     "grade": "1-5",
-    "text": "Combine grades for instruction only when the learning goal is genuinely common (for example a familiar song, a whole-group question, or a demonstration). Keep grade-specific concepts separate: never merge unrelated topics just because a shared activity makes the timetable easier. Check prerequisites before grouping grades together."
+    "text": "Combine grades for instruction only when the learning goal is genuinely common (for example a familiar song, a whole-group question, or a demonstration). Keep grade-specific concepts separate: never merge unrelated topics just because a shared activity makes the timetable easier. Check prerequisites before grouping grades together.",
+    "text_hi": "कक्षाओं को साथ पढ़ाएँ केवल जब सीखने का लक्ष्य वास्तव में सामान्य हो (जैसे कोई परिचित गीत, सामूहिक प्रश्न या प्रदर्शन)। कक्षा-विशेष अवधारणाएँ अलग रखें: असंबंधित विषयों को न मिलाएँ। जो सामग्री सबके लिए एक जैसी न हो, उसे अलग रखें।"
   },
   {
     "title": "Foundational literacy daily routine",
@@ -21,7 +23,8 @@
     "url": "https://diksha.gov.in/",
     "tags": "reading literacy language fluency comprehension paired reading FLN",
     "grade": "1-3",
-    "text": "A short daily reading routine: teacher models fluent reading of a short familiar text, learners read in pairs, then one literal and one inferential question. Learners needing support work with picture-word cards; learners ready for more propose alternative titles with a reason."
+    "text": "A short daily reading routine: teacher models fluent reading of a short familiar text, learners read in pairs, then one literal and one inferential question. Learners needing support work with picture-word cards; learners ready for more propose alternative titles with a reason.",
+    "text_hi": "प्रतिदिन की छोटी पठन दिनचर्या: शिक्षक एक छोटा परिचित पाठ सहजता से पढ़कर दिखाएँ, बच्चे जोड़ियों में पढ़ें, फिर एक सीधा और एक अनुमान-आधारित प्रश्न। जिन्हें सहायता चाहिए उन्हें चित्र-शब्द कार्ड दें; जो आगे बढ़े हैं वे बढ़िया पाठ पर समान स्तर के एक और पाठ पर काम करें।"
   },
   {
     "title": "Low-cost manipulatives for early mathematics",
@@ -29,7 +32,8 @@
     "url": "https://epathshala.nic.in/",
     "tags": "math number shapes measurement fractions stones sticks paper folding local materials TLM",
     "grade": "1-5",
-    "text": "Model one mathematics example with locally available materials — sticks or seeds for number and place value, paper folding for fractions, classroom objects for shapes, string or hand spans for measurement. Learners show thinking with objects, drawings or number sentences, then complete a short independent check at their own grade level."
+    "text": "Model one mathematics example with locally available materials — sticks or seeds for number and place value, paper folding for fractions, classroom objects for shapes, string or hand spans for measurement. Learners show thinking with objects, drawings or number sentences, then complete a short independent check at their own grade level.",
+    "text_hi": "गणित का एक उदाहरण स्थानीय सामग्री से दिखाएँ — संख्या और स्थानीय मान के लिए डंडे या बीज, भिन्न के लिए कागज़ मोड़ना, आकृतियों के लिए कक्षा की वस्तुएँ, मापन के लिए रस्सी या हाथ की बित्ती। बच्चे अपनी सोच वस्तु, चित्र या संख्या-वाक्य से दिखाएँ; साथी आपस में तरीके मिलाएँ, फिर एक छोटी स्वतंत्र जाँच करें।"
   },
   {
     "title": "Formative checks and exit tickets in mixed-grade classes",
@@ -37,7 +41,8 @@
     "url": "https://www.education.gov.in/",
     "tags": "assessment worksheet competency check formative exit ticket remedial",
     "grade": "1-5",
-    "text": "Close a lesson with a one-question-per-grade check aligned to that grade's learning outcome: show one example, explain the method, try a variant. Record who is independent, who needs a hint, and who needs another model — use this to plan the next lesson's remediation group."
+    "text": "Close a lesson with a one-question-per-grade check aligned to that grade's learning outcome: show one example, explain the method, try a variant. Record who is independent, who needs a hint, and who needs another model — use this to plan the next lesson's remediation group.",
+    "text_hi": "पाठ के अंत में हर कक्षा के लिए उस कक्षा के सीखने-लक्ष्य से जुड़ा एक-प्रश्न जाँच रखें: एक उदाहरण दिखाएँ, विधि समझाएँ, एक रूपांतर करके देखें। लिखकर रखें कि कौन स्वतंत्र है, किसे संकेत चाहिए, और किसे दोबारा उदाहरण चाहिए — इससे अगले पाठ की योजना तय होती है।"
   },
   {
     "title": "NEP 2020 and teacher professional development",
@@ -45,7 +50,8 @@
     "url": "https://www.education.gov.in/nep/about-nep",
     "tags": "NEP 2020 NCF training CPD professional development capacity building",
     "grade": "teacher",
-    "text": "NEP 2020 emphasises teacher capacity building, including at least 50 hours of continuous professional development annually, competency-based education, foundational literacy and numeracy, and reducing rote learning. Confirm current training schedules through DIKSHA/NISHTHA or your education department."
+    "text": "NEP 2020 emphasises teacher capacity building, including at least 50 hours of continuous professional development annually, competency-based education, foundational literacy and numeracy, and reducing rote learning. Confirm current training schedules through DIKSHA/NISHTHA or your education department.",
+    "text_hi": "NEP 2020 शिक्षक क्षमता निर्माण पर ज़ोर देती है, जिसमें प्रतिवर्ष कम-से-कम 50 घंटे सतत व्यावसायिक विकास, क्षमता-आधारित शिक्षा, आधारभूत साक्षरता और संख्या-ज्ञान, तथा रटने की जगह समझ पर ध्यान शामिल है। लागू होने से पहले अपने राज्य की वर्तमान सर्कुलर से पुष्टि करें।"
   },
   {
     "title": "Inclusive participation in the classroom",
@@ -53,7 +59,8 @@
     "url": "https://diksha.gov.in/",
     "tags": "inclusion inclusive special needs participation think time wait time",
     "grade": "1-5",
-    "text": "Make instructions short and visible, allow think time before taking responses, use pair discussion before whole-class sharing, and accept oral, written or drawn responses so more learners can demonstrate understanding."
+    "text": "Make instructions short and visible, allow think time before taking responses, use pair discussion before whole-class sharing, and accept oral, written or drawn responses so more learners can demonstrate understanding.",
+    "text_hi": "निर्देश छोटे और सामने दिखने वाले रखें, उत्तर लेने से पहले सोचने का समय दें, पूरी कक्षा से पहले जोड़ी में चर्चा कराएँ, और मौखिक, लिखित या चित्र में उत्तर स्वीकारें ताकि अधिक बच्चे अपनी समझ दिखा सकें।"
   },
   {
     "title": "Classroom management: resetting attention",
@@ -61,6 +68,7 @@
     "url": "",
     "tags": "classroom management attention behaviour disruption routine signal",
     "grade": "teacher",
-    "text": "Pause activity, give one short concrete direction, and make the first step visible (on the board or by demonstrating). A quiet proximity check or a choice between two on-task options can help a learner rejoin. Follow your school's safeguarding and support procedures when a concern continues."
+    "text": "Pause activity, give one short concrete direction, and make the first step visible (on the board or by demonstrating). A quiet proximity check or a choice between two on-task options can help a learner rejoin. Follow your school's safeguarding and support procedures when a concern continues.",
+    "text_hi": "गतिविधि रोकें, एक छोटा ठोस निर्देश दें, और पहला कदम सामने दिखाएँ (बोर्ड पर या करके)। शांत पास जाकर जाँच या दो कार्य-संबंधी विकल्प देने से बच्चा दोबारा जुड़ पाता है। उसी गतिविधि पर लौटने का रास्ता पहले से तय रखें।"
   }
 ]

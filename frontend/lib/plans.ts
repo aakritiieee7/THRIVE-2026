@@ -69,14 +69,32 @@ export function mergePlans(local: PlanItem[], server: any[]): PlanItem[] {
   return [...mapped, ...local.filter(p => !ids.has(String(p.id)))]
 }
 
+/**
+ * Demo plans saved locally by lib/demo-seed.ts. Never sent to the backend and
+ * always marked `demo`, so the UI can badge them and nobody mistakes them for
+ * a real teacher's work. Returns [] when no demo is loaded.
+ */
+function demoPlans(): PlanItem[] {
+  if (typeof window === 'undefined') return []
+  try {
+    if (localStorage.getItem('thrive:demo-active') !== '1') return []
+    const raw = localStorage.getItem('thrive:demo-plans')
+    if (!raw) return []
+    const rows = JSON.parse(raw)
+    if (!Array.isArray(rows)) return []
+    return normalizePlans(rows.map((r: any) => ({ ...r, demo: true })))
+  } catch { return [] }
+}
+
 /** Load every plan this visitor can see: account, guest session, or device. */
 export async function fetchPlans(): Promise<PlanItem[]> {
+  const demo = demoPlans()
   try {
-    if (getToken()) return normalizePlans(await api.get<any[]>('/api/plans'))
+    if (getToken()) return [...demo, ...normalizePlans(await api.get<any[]>('/api/plans'))]
     const guest = await ensureGuest()
-    if (guest) return normalizePlans(await api.get<any[]>('/api/guest/plans', guestHeaders()))
+    if (guest) return [...demo, ...normalizePlans(await api.get<any[]>('/api/guest/plans', guestHeaders()))]
   } catch { /* offline or backend down — caller falls back to the local mirror */ }
-  return []
+  return demo
 }
 
 /** Persist one plan and return the stored flat item (server row when possible). */
