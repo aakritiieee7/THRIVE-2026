@@ -1,14 +1,14 @@
-# THRIVE — Final Test Report
+# THRIVE - Final Test Report
 
 **Date:** 15 November 2026
 **Commit under test:** `a3b4168` plus the uncommitted `backend/Dockerfile` change
 (`COPY curriculum /curriculum`)
 
-## 1. Backend test suite — 58 passed, 0 failed
+## 1. Backend test suite - 58 passed, 0 failed
 
 ```
 $ cd backend && THRIVE_SKIP_DOTENV=1 .venv/bin/python -m pytest tests/ -q
-..........................................................               [100%]
+..........................................................        [100%]
 58 passed in 2.65s
 ```
 
@@ -33,7 +33,7 @@ clean machine with no `.env`, the flag makes no difference.
 | Community | posts, replies, helpful votes, moderation threshold |
 | Assistant | grounded round-trip on an isolated SQLite database, sources present |
 
-## 2. Frontend type check — clean
+## 2. Frontend type check - clean
 
 ```
 $ cd frontend && npx tsc --noEmit
@@ -41,14 +41,14 @@ $ echo $?
 0
 ```
 
-## 3. Production build — succeeded
+## 3. Production build - succeeded
 
 ```
 $ cd frontend && npm run build
 ✓ all 15 routes compiled (see THRIVE_DEPLOYMENT_VERIFICATION.md §4)
 ```
 
-## 4. Deployed end-to-end checks — all passed
+## 4. Deployed end-to-end checks - all passed
 
 Run against https://thrive-2026-nine.vercel.app:
 
@@ -60,21 +60,21 @@ Run against https://thrive-2026-nine.vercel.app:
 | Assistant declines out-of-corpus questions honestly | 200, explicit out-of-corpus reply |
 | Assistant replies in Hindi (Devanagari) | 200 |
 
-## 5. Demo assets — verified with ffprobe / ffmpeg
+## 5. Demo assets - verified with ffprobe / ffmpeg
 
 | Asset | Verification |
 |---|---|
-| `THRIVE_DEMO.mp4` | h264 1920×1080, 30 fps; aac 48 kHz stereo; **170.63 s**; 7,425,212 bytes; `volumedetect` mean −19.8 dB, max −4.4 dB |
+| `media/THRIVE_DEMO.mp4` | h264 1920×1080, 30 fps; aac 48 kHz stereo; **170.63 s**; 7,425,212 bytes; `volumedetect` mean −19.8 dB, max −4.4 dB |
 | `THRIVE_VOICEOVER.mp3` | 170.58 s; 192 kbps, 48 kHz, stereo; 4,095,404 bytes |
 | `THRIVE_SUBTITLES.srt` | 36 cues; first at 00:00:07,275, last ends 00:02:49,576 |
-| Visual check | 10 frames pulled from the **final MP4** at 3, 12, 34, 51, 80, 100, 121, 149, 160, 167 s — every one shows the expected card/screen, scene label and a legible caption |
+| Visual check | 10 frames pulled from the **final MP4** at 3, 12, 34, 51, 80, 100, 121, 149, 160, 167 s - every one shows the expected card/screen, scene label and a legible caption |
 
 ## 6. What was not tested
 
-- **Inbound WhatsApp messages end to end** — the Meta webhook has not been registered
-  yet (§5 of the deployment report). Outbound path and webhook handler are built and
-  unit-tested; the live round trip cannot be confirmed until the webhook is registered.
-- **Load, concurrency and long-running uptime** — not exercised.
-- **Browsers other than Chromium / Safari-family engines** — not exercised.
-- **Hindi Devanagari in the UI** — the assistant's Hindi replies were confirmed via the
-  API; the rendered UI text was not visually inspected this session.
+- **Inbound WhatsApp messages end to end** - the Meta webhook has not been registered
+ yet (§5 of the deployment report). Outbound path and webhook handler are built and
+ unit-tested; the live round trip cannot be confirmed until the webhook is registered.
+- **Load, concurrency and long-running uptime** - not exercised.
+- **Browsers other than Chromium / Safari-family engines** - not exercised.
+- **Hindi Devanagari in the UI** - the assistant's Hindi replies were confirmed via the
+ API; the rendered UI text was not visually inspected this session.

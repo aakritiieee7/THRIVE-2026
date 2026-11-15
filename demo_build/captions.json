@@ -1,0 +1,228 @@
+{
+ "02_landing": [
+  {
+   "png": "02_landing_00.png",
+   "text": "This is THRIVE, the Teacher Hub for Resources,.",
+   "start": 0.0,
+   "end": 3.5374999999999996
+  },
+  {
+   "png": "02_landing_01.png",
+   "text": "Instruction, Verified Information and Empowerment.",
+   "start": 2.9975,
+   "end": 7.1850000000000005
+  },
+  {
+   "png": "02_landing_02.png",
+   "text": "It is built for teachers working in India's government and low-fee schools,.",
+   "start": 7.235,
+   "end": 12.05
+  },
+  {
+   "png": "02_landing_03.png",
+   "text": "Where one teacher often handles several grade groups at once.",
+   "start": 11.497499999999999,
+   "end": 16.209999999999997
+  },
+  {
+   "png": "02_landing_04.png",
+   "text": "THRIVE is built around that reality.",
+   "start": 16.259999999999998,
+   "end": 19.2875
+  }
+ ],
+ "03_home": [
+  {
+   "png": "03_home_00.png",
+   "text": "When a teacher signs in, everything needed for the day sits on one calm page.",
+   "start": 0.0,
+   "end": 5.5475
+  },
+  {
+   "png": "03_home_01.png",
+   "text": "Saved plans, training progress, and the latest updates from the education department,.",
+   "start": 5.5975,
+   "end": 11.8375
+  },
+  {
+   "png": "03_home_02.png",
+   "text": "Each linked back to an official source.",
+   "start": 11.397499999999999,
+   "end": 14.4375
+  }
+ ],
+ "04_compiler": [
+  {
+   "png": "04_compiler_00.png",
+   "text": "The heart of THRIVE is the Multi-Grade Classroom Compiler.",
+   "start": 0.0,
+   "end": 4.285
+  },
+  {
+   "png": "04_compiler_01.png",
+   "text": "A teacher says which grades are in the room,.",
+   "start": 4.335,
+   "end": 7.625
+  },
+  {
+   "png": "04_compiler_02.png",
+   "text": "For how long, and what the children should learn.",
+   "start": 7.085,
+   "end": 10.735
+  },
+  {
+   "png": "04_compiler_03.png",
+   "text": "THRIVE builds one coordinated period.",
+   "start": 10.785,
+   "end": 13.834999999999999
+  },
+  {
+   "png": "04_compiler_04.png",
+   "text": "A shared opening, a dedicated teacher-led turn for each grade,.",
+   "start": 13.885,
+   "end": 18.3625
+  },
+  {
+   "png": "04_compiler_05.png",
+   "text": "Independent work for the groups who are waiting, and the minutes always add up exactly.",
+   "start": 17.835,
+   "end": 23.8725
+  },
+  {
+   "png": "04_compiler_06.png",
+   "text": "And if the plan is not possible in the time available,.",
+   "start": 23.9225,
+   "end": 27.85
+  },
+  {
+   "png": "04_compiler_07.png",
+   "text": "THRIVE says so, and explains why, instead of hiding it.",
+   "start": 27.285,
+   "end": 31.9625
+  }
+ ],
+ "05_guided": [
+  {
+   "png": "05_guided_00.png",
+   "text": "When a teacher is not sure where to start,.",
+   "start": 0.0,
+   "end": 3.2874999999999996
+  },
+  {
+   "png": "05_guided_01.png",
+   "text": "Guided setup asks a few simple questions and prepares the plan.",
+   "start": 2.7975,
+   "end": 7.697500000000001
+  },
+  {
+   "png": "05_guided_02.png",
+   "text": "Any part of it can be changed, and every section can be regenerated on its own,.",
+   "start": 7.7475000000000005,
+   "end": 13.512500000000001
+  },
+  {
+   "png": "05_guided_03.png",
+   "text": "So a teacher's own edits are never lost.",
+   "start": 12.959999999999999,
+   "end": 16.4
+  }
+ ],
+ "06_assistant": [
+  {
+   "png": "06_assistant_00.png",
+   "text": "Then there is the Teaching Assistant.",
+   "start": 0.0,
+   "end": 2.8225000000000002
+  },
+  {
+   "png": "06_assistant_01.png",
+   "text": "A teacher can ask, in English or in Hindi,.",
+   "start": 2.8725,
+   "end": 6.3625
+  },
+  {
+   "png": "06_assistant_02.png",
+   "text": "How to explain evaporation using nothing but chalk and a blackboard.",
+   "start": 5.8475,
+   "end": 10.772499999999999
+  },
+  {
+   "png": "06_assistant_03.png",
+   "text": "The answer is built from THRIVE's curriculum corpus,.",
+   "start": 10.8225,
+   "end": 14.6875
+  },
+  {
+   "png": "06_assistant_04.png",
+   "text": "And every reply shows its sources, so it can be checked.",
+   "start": 14.122499999999999,
+   "end": 18.7225
+  },
+  {
+   "png": "06_assistant_05.png",
+   "text": "When the corpus does not cover something, THRIVE says so, rather than making it up.",
+   "start": 18.7725,
+   "end": 24.725
+  }
+ ],
+ "07_training": [
+  {
+   "png": "07_training_00.png",
+   "text": "The Training Centre holds short practice modules written by THRIVE.",
+   "start": 0.0,
+   "end": 4.835000000000001
+  },
+  {
+   "png": "07_training_01.png",
+   "text": "Progress is saved,.",
+   "start": 4.885000000000001,
+   "end": 6.7625
+  },
+  {
+   "png": "07_training_02.png",
+   "text": "And each module links to verified professional development from DIKSHA and NISHTHA.",
+   "start": 6.2225,
+   "end": 12.122499999999999
+  },
+  {
+   "png": "07_training_03.png",
+   "text": "It is a learning record, not an official certificate.",
+   "start": 12.1725,
+   "end": 16.125
+  }
+ ],
+ "08_updates": [
+  {
+   "png": "08_updates_00.png",
+   "text": "Verified Education Updates collects policy news and official resources,.",
+   "start": 0.0,
+   "end": 5.449999999999999
+  },
+  {
+   "png": "08_updates_01.png",
+   "text": "Each with its source, with search and bookmarks.",
+   "start": 5.010000000000001,
+   "end": 8.697499999999998
+  },
+  {
+   "png": "08_updates_02.png",
+   "text": "No unverified circulars, and no invented announcements.",
+   "start": 8.747499999999999,
+   "end": 13.500000000000002
+  }
+ ],
+ "09_community": [
+  {
+   "png": "09_community_00.png",
+   "text": "And the Teacher Community lets teachers share what actually works in the classroom,.",
+   "start": 0.0,
+   "end": 5.562499999999999
+  },
+  {
+   "png": "09_community_01.png",
+   "text": "With replies, helpful votes, and moderation.",
+   "start": 5.0225,
+   "end": 8.9
+  }
+ ]
+}

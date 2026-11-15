@@ -26,3 +26,13 @@ venv/
 .playwright-cli/
 # TS build cache
 tsconfig.tsbuildinfo
+
+# Agent tooling / scratch
+.claude/settings.local.json
+.playwright-cli/
+demo_build/audio/
+demo_build/captions/
+demo_build/clips/
+demo_build/overlays/
+demo_build/cards/
+demo_frames/check/
