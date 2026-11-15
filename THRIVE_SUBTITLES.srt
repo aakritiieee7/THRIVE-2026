@@ -1,0 +1,143 @@
+1
+00:00:07,275 --> 00:00:10,812
+This is THRIVE, the Teacher Hub for Resources,.
+
+2
+00:00:10,272 --> 00:00:14,460
+Instruction, Verified Information and Empowerment.
+
+3
+00:00:14,510 --> 00:00:19,325
+It is built for teachers working in India's government and low-fee schools,.
+
+4
+00:00:18,772 --> 00:00:23,485
+Where one teacher often handles several grade groups at once.
+
+5
+00:00:23,535 --> 00:00:26,562
+THRIVE is built around that reality.
+
+6
+00:00:26,863 --> 00:00:32,411
+When a teacher signs in, everything needed for the day sits on one calm page.
+
+7
+00:00:32,461 --> 00:00:38,701
+Saved plans, training progress, and the latest updates from the education department,.
+
+8
+00:00:38,261 --> 00:00:41,300
+Each linked back to an official source.
+
+9
+00:00:41,601 --> 00:00:45,886
+The heart of THRIVE is the Multi-Grade Classroom Compiler.
+
+10
+00:00:45,936 --> 00:00:49,226
+A teacher says which grades are in the room,.
+
+11
+00:00:48,686 --> 00:00:52,336
+For how long, and what the children should learn.
+
+12
+00:00:52,386 --> 00:00:55,436
+THRIVE builds one coordinated period.
+
+13
+00:00:55,486 --> 00:00:59,963
+A shared opening, a dedicated teacher-led turn for each grade,.
+
+14
+00:00:59,436 --> 00:01:05,474
+Independent work for the groups who are waiting, and the minutes always add up exactly.
+
+15
+00:01:05,523 --> 00:01:09,451
+And if the plan is not possible in the time available,.
+
+16
+00:01:08,886 --> 00:01:13,564
+THRIVE says so, and explains why, instead of hiding it.
+
+17
+00:01:13,863 --> 00:01:17,150
+When a teacher is not sure where to start,.
+
+18
+00:01:16,660 --> 00:01:21,561
+Guided setup asks a few simple questions and prepares the plan.
+
+19
+00:01:21,611 --> 00:01:27,376
+Any part of it can be changed, and every section can be regenerated on its own,.
+
+20
+00:01:26,823 --> 00:01:30,263
+So a teacher's own edits are never lost.
+
+21
+00:01:30,563 --> 00:01:33,386
+Then there is the Teaching Assistant.
+
+22
+00:01:33,436 --> 00:01:36,925
+A teacher can ask, in English or in Hindi,.
+
+23
+00:01:36,410 --> 00:01:41,335
+How to explain evaporation using nothing but chalk and a blackboard.
+
+24
+00:01:41,386 --> 00:01:45,251
+The answer is built from THRIVE's curriculum corpus,.
+
+25
+00:01:44,686 --> 00:01:49,285
+And every reply shows its sources, so it can be checked.
+
+26
+00:01:49,335 --> 00:01:55,288
+When the corpus does not cover something, THRIVE says so, rather than making it up.
+
+27
+00:01:55,588 --> 00:02:00,423
+The Training Centre holds short practice modules written by THRIVE.
+
+28
+00:02:00,473 --> 00:02:02,351
+Progress is saved,.
+
+29
+00:02:01,811 --> 00:02:07,711
+And each module links to verified professional development from DIKSHA and NISHTHA.
+
+30
+00:02:07,761 --> 00:02:11,713
+It is a learning record, not an official certificate.
+
+31
+00:02:12,013 --> 00:02:17,463
+Verified Education Updates collects policy news and official resources,.
+
+32
+00:02:17,023 --> 00:02:20,711
+Each with its source, with search and bookmarks.
+
+33
+00:02:20,761 --> 00:02:25,513
+No unverified circulars, and no invented announcements.
+
+34
+00:02:25,813 --> 00:02:31,376
+And the Teacher Community lets teachers share what actually works in the classroom,.
+
+35
+00:02:30,836 --> 00:02:34,713
+With replies, helpful votes, and moderation.
+
+36
+00:02:46,613 --> 00:02:49,576
+THRIVE. Helping teachers thrive, so students flourish.
